@@ -146,7 +146,3 @@ Annotations are **not** submitted as a file. Organizers export Marcaj at 15:00.
 - Not allowed: another team’s annotations.
 - Pitch: 5 min + 5 min questions. Show the working web interface (map, objects, IDs, measurements, **both** routes). Laptop demo is accepted; deployed URL goes in the README.
 - Support: GigaHack Slack challenge channel, Marcaj team 09:00–23:00. Pinned clarifications apply to all teams.
-
-## Current repo gaps vs this brief
-
-The scaffold still has a **sample** `route.geojson` in EPSG:4326 (not 32635) and a **sample** `measurements.csv`. `route_farmer.geojson` is not generated yet. Inspection-target export exists in the CLI; rebuild both walks from the Marcaj export. See [`must-implement.md`](must-implement.md).
