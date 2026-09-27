@@ -49,16 +49,6 @@ export function utm35nToLonLat(easting: number, northing: number): Position {
   return [(lon * 180) / Math.PI, (lat * 180) / Math.PI];
 }
 
-/** WGS84 lon/lat, or UTM 35N metres (organizer pretest X/Y). */
-export function parseStart(xRaw: string, yRaw: string): Position | null {
-  const x = Number(String(xRaw).trim());
-  const y = Number(String(yRaw).trim());
-  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-  if (Math.abs(x) <= 180 && Math.abs(y) <= 90) return [x, y];
-  if (x > 1000 && y > 1_000_000) return utm35nToLonLat(x, y);
-  return null;
-}
-
 function mapCoords(coords: unknown, fn: (x: number, y: number) => Position): unknown {
   if (!Array.isArray(coords) || coords.length === 0) return coords;
   if (typeof coords[0] === "number") return fn(Number(coords[0]), Number(coords[1]));
