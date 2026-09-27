@@ -19,7 +19,7 @@ import {
   ScanLine,
   X,
 } from "lucide-react";
-import { toLonLatCollection } from "@/lib/geo";
+import { parseStart, toLonLatCollection, utm35nToLonLat } from "@/lib/geo";
 import { createLayerVisibility } from "@/lib/layer-visibility";
 import Brand from "./Brand";
 import { readRoute } from "@/lib/route-path";
@@ -32,6 +32,8 @@ const SIRET3_XYZ =
 
 /** Official start in WGS84 (data/challenge/02_route/start.geojson). */
 const OFFICIAL_START: [number, number] = [28.7073776, 47.1230335];
+const PRETEST_UTM = { x: "629663.8", y: "5220195.3" };
+const PRETEST_WGS: [number, number] = utm35nToLonLat(629663.8, 5220195.3);
 
 type Status = "loading" | "ready" | "error" | "empty";
 type WalkMode = "inspector" | "farmer" | "both";
@@ -204,6 +206,7 @@ export function VineyardMap() {
   const [fullscreen, setFullscreen] = useState(false);
   const [message, setMessage] = useState("");
   const [mapZoom, setMapZoom] = useState(16.6);
+  const [startPin, setStartPin] = useState<"official" | "pretest">("official");
 
 
   const [playbackMap, setPlaybackMap] = useState<import("maplibre-gl").Map | null>(null);
@@ -218,6 +221,7 @@ export function VineyardMap() {
   const [noticeSnapshot, setNoticeSnapshot] = useState("");
   const visibility = useRef<ReturnType<typeof createLayerVisibility> | null>(null);
   const latestLayers = useRef(layers);
+  const startPinRef = useRef(startPin);
   const panelsActive = intro.ready && panelsVisible && !player.picking;
   const headerPresence = usePresence(intro.ready);
   const panelsPresence = usePresence(panelsActive);
@@ -343,9 +347,6 @@ export function VineyardMap() {
         mapRef.current = currentMap;
         currentMap.on("error", (ev) => {
           const msg = ev.error?.message || "";
-          if (msg.includes("siret3") && currentMap.getLayer("siret3")) {
-            currentMap.setPaintProperty("siret3", "raster-opacity", 0);
-          }
           if (msg.includes("Worker") || msg.includes("actors") || msg.includes("siret3") || msg.includes("Failed to fetch")) return;
         });
         currentMap.on("zoom", () => setMapZoom(currentMap.getZoom()));
@@ -368,6 +369,10 @@ export function VineyardMap() {
                 },
               ],
             },
+          });
+          currentMap.addSource("query-pin", {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] },
           });
 
           currentMap.addLayer({
@@ -454,6 +459,12 @@ export function VineyardMap() {
             source: "start",
             paint: { "circle-color": "#438bff", "circle-radius": 7, "circle-stroke-width": 2, "circle-stroke-color": "#fff" },
           });
+          currentMap.addLayer({
+            id: "query-pin",
+            type: "circle",
+            source: "query-pin",
+            paint: { "circle-color": "#2f7a38", "circle-radius": 8, "circle-stroke-width": 2, "circle-stroke-color": "#fff" },
+          });
 
           for (const id of [
             "vineyard-fill",
@@ -487,6 +498,13 @@ export function VineyardMap() {
           setWalkRoutes({ inspector: readRoute(inspector.features), farmer: readRoute(farmer.features) });
           setPlaybackMap(currentMap);
           setStatus(feats.length ? "ready" : "empty");
+          if (startPinRef.current === "pretest") {
+            const pin = currentMap.getSource("query-pin") as { setData: (data: GeoJSON.FeatureCollection) => void } | undefined;
+            pin?.setData({
+              type: "FeatureCollection",
+              features: [{ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: PRETEST_WGS } }],
+            });
+          }
         });
         ro = new ResizeObserver(() => map?.resize());
         if (mapEl.current) ro.observe(mapEl.current);
@@ -515,12 +533,46 @@ export function VineyardMap() {
     visibility.current?.set(layers);
   }, [layers]);
 
+  useEffect(() => {
+    startPinRef.current = startPin;
+  }, [startPin]);
+
   function toggleLayer(key: LayerKey) {
     setLayers((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
+  function setQueryPin(pt: [number, number] | null) {
+    const src = mapRef.current?.getSource("query-pin") as { setData: (data: GeoJSON.FeatureCollection) => void } | undefined;
+    src?.setData({
+      type: "FeatureCollection",
+      features: pt
+        ? [{ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: pt } }]
+        : [],
+    });
+  }
+
+  function flyToPin(pt: [number, number]) {
+    mapRef.current?.flyTo({ center: pt, zoom: 17.4, ...cameraAnimation() });
+    setQueryPin(pt);
+  }
+
+  function applyOfficialStart() {
+    setStartPin("official");
+    flyToPin(OFFICIAL_START);
+    setMessage("Official start 47.1230335 N, 28.7073776 E");
+  }
+
+  function applyPretest() {
+    const pt = parseStart(PRETEST_UTM.x, PRETEST_UTM.y);
+    if (!pt) return;
+    setStartPin("pretest");
+    flyToPin(pt);
+    setMessage(`Pre-test ${PRETEST_WGS[1].toFixed(7)} N, ${PRETEST_WGS[0].toFixed(7)} E`);
+  }
+
   function recenter() {
-    mapRef.current?.flyTo({ center: player.startPoint || OFFICIAL_START, zoom: 16.6, ...cameraAnimation() });
+    const pin = startPin === "pretest" ? PRETEST_WGS : player.startPoint || OFFICIAL_START;
+    flyToPin(pin);
   }
 
   async function toggleFullscreen() {
@@ -633,6 +685,11 @@ export function VineyardMap() {
                 <Choice active={walkMode === "inspector"} onClick={() => setWalkMode("inspector")} label="Inspector" />
                 <Choice active={walkMode === "farmer"} onClick={() => setWalkMode("farmer")} label="Farmer" />
                 <Choice active={walkMode === "both"} onClick={() => setWalkMode("both")} label="Both" />
+              </div>
+              <p className="field-label">Start pin</p>
+              <div className="segmented flex gap-1">
+                <Choice active={startPin === "official"} onClick={applyOfficialStart} label="Official" />
+                <Choice active={startPin === "pretest"} onClick={applyPretest} label="Pre-test" />
               </div>
               <RoutePlaybackControls player={player} reveal={revealWalk} />
               <button type="button" className="build-button flex items-center justify-center gap-3" onClick={showWalk} disabled={status === "loading" || status === "error"}>
