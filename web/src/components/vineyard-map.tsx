@@ -18,14 +18,13 @@ import {
   X,
 } from "lucide-react";
 import { asset } from "@/lib/base-path";
-import { toLonLatCollection, utm35nToLonLat } from "@/lib/geo";
+import { parseStart, toLonLatCollection, utm35nToLonLat } from "@/lib/geo";
 import {
   cumDist,
   lerpBearing,
   lerpLonLat,
   lineCoords,
   nearestIndex,
-  parseLonLat,
   pointAtDistance,
   type LonLat,
 } from "@/lib/walk";
@@ -39,6 +38,9 @@ const SIRET3_XYZ =
 
 /** Official start in WGS84 (data/challenge/02_route/start.geojson). */
 const OFFICIAL_START: [number, number] = [28.7073776, 47.1230335];
+/** Organizer pre-test point (UTM 35N). Not the walk start. */
+const PRETEST_UTM = { x: "629663.8", y: "5220195.3" };
+const PRETEST_WGS: [number, number] = utm35nToLonLat(629663.8, 5220195.3);
 
 /** Study area of the 311 tiles (data/challenge/02_route/study_area.geojson). */
 const STUDY_BOUNDS: [[number, number], [number, number]] = [
@@ -366,10 +368,7 @@ export function VineyardMap() {
         mapRef.current = created;
         created.on("error", (ev) => {
           const msg = ev.error?.message || "";
-          if (msg.includes("siret3") && created.getLayer("siret3")) {
-            created.setPaintProperty("siret3", "raster-opacity", 0);
-          }
-          if (msg.includes("Worker") || msg.includes("actors") || msg.includes("siret3") || msg.includes("Failed to fetch")) return;
+          if (msg.includes("Worker") || msg.includes("actors") || msg.includes("Failed to fetch")) return;
         });
         created.on("zoom", () => setMapZoom(created.getZoom()));
 
@@ -400,6 +399,14 @@ export function VineyardMap() {
                   geometry: { type: "Point", coordinates: OFFICIAL_START },
                 },
               ],
+            },
+          });
+          created.addSource("query-pin", {
+            type: "geojson",
+            data: {
+              type: "Feature",
+              properties: {},
+              geometry: { type: "Point", coordinates: OFFICIAL_START },
             },
           });
 
@@ -488,6 +495,12 @@ export function VineyardMap() {
             paint: { "circle-color": "#438bff", "circle-radius": 7, "circle-stroke-width": 2, "circle-stroke-color": "#fff" },
           });
           created.addLayer({
+            id: "query-pin",
+            type: "circle",
+            source: "query-pin",
+            paint: { "circle-color": "#2f7a38", "circle-radius": 8, "circle-stroke-width": 2, "circle-stroke-color": "#fff" },
+          });
+          created.addLayer({
             id: "walker-pt",
             type: "circle",
             source: "walker",
@@ -500,10 +513,12 @@ export function VineyardMap() {
           });
           created.on("click", (e) => {
             if (!pickStartRef.current) return;
-            setStartLon(e.lngLat.lng.toFixed(7));
-            setStartLat(e.lngLat.lat.toFixed(7));
+            const lon = e.lngLat.lng.toFixed(7);
+            const lat = e.lngLat.lat.toFixed(7);
+            setStartLon(lon);
+            setStartLat(lat);
             setPickStart(false);
-            setMessage("Start pinned on the map");
+            showParsedStart(lon, lat);
           });
 
           for (const id of [
@@ -575,6 +590,43 @@ export function VineyardMap() {
 
   function recenter() {
     mapRef.current?.flyTo({ center: OFFICIAL_START, zoom: 17.6 });
+  }
+
+  function setQueryPin(pt: LonLat) {
+    const src = mapRef.current?.getSource("query-pin") as { setData: (data: GeoJSON.Feature) => void } | undefined;
+    src?.setData({
+      type: "Feature",
+      properties: {},
+      geometry: { type: "Point", coordinates: pt },
+    });
+  }
+
+  function showParsedStart(x = startLon, y = startLat) {
+    const pt = parseStart(x, y);
+    if (!pt) {
+      setMessage("Need WGS84 lon/lat or UTM 35N X/Y");
+      return null;
+    }
+    setQueryPin(pt);
+    mapRef.current?.flyTo({ center: pt, zoom: 17.8, pitch: 0, bearing: 0 });
+    setMessage(`Pin ${pt[0].toFixed(7)}, ${pt[1].toFixed(7)}`);
+    return pt;
+  }
+
+  function applyOfficialStart() {
+    stopWalk();
+    setStartLon(String(OFFICIAL_START[0]));
+    setStartLat(String(OFFICIAL_START[1]));
+    setPickStart(false);
+    showParsedStart(String(OFFICIAL_START[0]), String(OFFICIAL_START[1]));
+  }
+
+  function applyPretest() {
+    setStartLon(PRETEST_UTM.x);
+    setStartLat(PRETEST_UTM.y);
+    setPickStart(false);
+    const pt = showParsedStart(PRETEST_UTM.x, PRETEST_UTM.y);
+    if (pt) setMessage(`Pre-test ${PRETEST_WGS[1].toFixed(7)} N, ${PRETEST_WGS[0].toFixed(7)} E`);
   }
 
   async function toggleFullscreen() {
@@ -671,7 +723,7 @@ export function VineyardMap() {
     }
 
     const line = activeLine();
-    const pinned = parseLonLat(startLon, startLat) || OFFICIAL_START;
+    const pinned = parseStart(startLon, startLat) || OFFICIAL_START;
     if (line.length < 2) {
       setMessage("No walk line loaded");
       mapRef.current?.flyTo({ center: pinned, zoom: 16.6 });
@@ -821,29 +873,29 @@ export function VineyardMap() {
                 <Choice active={walkMode === "farmer"} onClick={() => setWalkMode("farmer")} label="Farmer" />
                 <Choice active={walkMode === "both"} onClick={() => setWalkMode("both")} label="Both" />
               </div>
-              <p className="field-label">Start (WGS84)</p>
+              <p className="field-label">Start (WGS84 or UTM 35N)</p>
               <div className="coord-row">
                 <label>
-                  Lon
-                  <input inputMode="decimal" value={startLon} onChange={(e) => setStartLon(e.target.value)} aria-label="Start longitude" />
+                  Lon / X
+                  <input inputMode="decimal" value={startLon} onChange={(e) => setStartLon(e.target.value)} onBlur={() => showParsedStart()} aria-label="Start longitude or UTM easting" />
                 </label>
                 <label>
-                  Lat
-                  <input inputMode="decimal" value={startLat} onChange={(e) => setStartLat(e.target.value)} aria-label="Start latitude" />
+                  Lat / Y
+                  <input inputMode="decimal" value={startLat} onChange={(e) => setStartLat(e.target.value)} onBlur={() => showParsedStart()} aria-label="Start latitude or UTM northing" />
                 </label>
               </div>
               <div className="segmented three flex gap-1">
                 <Choice
                   active={startLon === String(OFFICIAL_START[0]) && startLat === String(OFFICIAL_START[1])}
-                  onClick={() => {
-                    setStartLon(String(OFFICIAL_START[0]));
-                    setStartLat(String(OFFICIAL_START[1]));
-                    setPickStart(false);
-                  }}
+                  onClick={applyOfficialStart}
                   label="Official"
                 />
+                <Choice
+                  active={startLon === PRETEST_UTM.x && startLat === PRETEST_UTM.y}
+                  onClick={applyPretest}
+                  label="Pre-test"
+                />
                 <Choice active={pickStart} onClick={() => setPickStart((v) => !v)} label={pickStart ? "Tap map…" : "Pin on map"} />
-                <Choice active={false} onClick={stopWalk} label="Reset" />
               </div>
               <p className="field-label">Speed</p>
               <div className="speed-row flex gap-1">
@@ -1017,43 +1069,45 @@ export function VineyardMap() {
                   <Choice active={walkMode === "farmer"} onClick={() => setWalkMode("farmer")} label="Farmer" />
                   <Choice active={walkMode === "both"} onClick={() => setWalkMode("both")} label="Both" />
                 </div>
-                <p className="field-label">Start (WGS84)</p>
+                <p className="field-label">Start (WGS84 or UTM 35N)</p>
                 <div className="coord-row">
                   <label>
-                    Lon
+                    Lon / X
                     <input
                       inputMode="decimal"
                       value={startLon}
                       onChange={(e) => setStartLon(e.target.value)}
-                      aria-label="Start longitude"
+                      onBlur={() => showParsedStart()}
+                      aria-label="Start longitude or UTM easting"
                     />
                   </label>
                   <label>
-                    Lat
+                    Lat / Y
                     <input
                       inputMode="decimal"
                       value={startLat}
                       onChange={(e) => setStartLat(e.target.value)}
-                      aria-label="Start latitude"
+                      onBlur={() => showParsedStart()}
+                      aria-label="Start latitude or UTM northing"
                     />
                   </label>
                 </div>
                 <div className="segmented three flex gap-1">
                   <Choice
                     active={startLon === String(OFFICIAL_START[0]) && startLat === String(OFFICIAL_START[1])}
-                    onClick={() => {
-                      setStartLon(String(OFFICIAL_START[0]));
-                      setStartLat(String(OFFICIAL_START[1]));
-                      setPickStart(false);
-                    }}
+                    onClick={applyOfficialStart}
                     label="Official"
+                  />
+                  <Choice
+                    active={startLon === PRETEST_UTM.x && startLat === PRETEST_UTM.y}
+                    onClick={applyPretest}
+                    label="Pre-test"
                   />
                   <Choice
                     active={pickStart}
                     onClick={() => setPickStart((v) => !v)}
                     label={pickStart ? "Tap map…" : "Pin on map"}
                   />
-                  <Choice active={false} onClick={stopWalk} label="Reset" />
                 </div>
                 <p className="field-label">Speed</p>
                 <div className="speed-row flex gap-1">

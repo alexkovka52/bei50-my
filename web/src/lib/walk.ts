@@ -91,6 +91,6 @@ export function parseLonLat(lon: string, lat: string): LonLat | null {
   const x = Number(lon);
   const y = Number(lat);
   if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-  if (Math.abs(x) > 180 || Math.abs(y) > 90) return null;
-  return [x, y];
+  if (Math.abs(x) <= 180 && Math.abs(y) <= 90) return [x, y];
+  return null;
 }

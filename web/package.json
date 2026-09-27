@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack --hostname 127.0.0.1 --port 43173",
     "build": "next build --turbopack",
     "start": "next start --hostname 127.0.0.1 --port 43173",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --experimental-strip-types --test src/lib/parse-start.test.mts"
   },
   "dependencies": {
     "lucide-react": "^1.48.0",
