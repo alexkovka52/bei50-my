@@ -1,25 +1,38 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import {
   BarChart3,
   Check,
   Expand,
-  Leaf,
   Layers3,
   Minimize2,
   Minus,
   Navigation,
-  PanelLeftClose,
-  PanelLeftOpen,
+  Pause,
+  Play,
   Plus,
   RefreshCw,
   Route,
-  Rows3,
-  ScanLine,
   X,
 } from "lucide-react";
-import { toLonLatCollection } from "@/lib/geo";
+import { asset } from "@/lib/base-path";
+import { toLonLatCollection, utm35nToLonLat } from "@/lib/geo";
+import {
+  cumDist,
+  lerpBearing,
+  lerpLonLat,
+  lineCoords,
+  nearestIndex,
+  parseLonLat,
+  pointAtDistance,
+  type LonLat,
+} from "@/lib/walk";
+
+const WALK_MPS = 5.5;
+const SPEEDS = [0.5, 1, 2, 4, 8] as const;
+type WalkSpeed = (typeof SPEEDS)[number];
 
 const SIRET3_XYZ =
   "https://api.imagery.hotosm.org/raster/collections/openaerialmap/items/683060c4025981aa411253c8/tiles/WebMercatorQuad/{z}/{x}/{y}?assets=visual";
@@ -27,8 +40,18 @@ const SIRET3_XYZ =
 /** Official start in WGS84 (data/challenge/02_route/start.geojson). */
 const OFFICIAL_START: [number, number] = [28.7073776, 47.1230335];
 
+/** Study area of the 311 tiles (data/challenge/02_route/study_area.geojson). */
+const STUDY_BOUNDS: [[number, number], [number, number]] = [
+  utm35nToLonLat(628980, 5219160),
+  utm35nToLonLat(630745, 5220980),
+];
+
+type FooterPane = "survey" | "inspect" | "plan" | "layers";
+
 type Status = "loading" | "ready" | "error" | "empty";
 type WalkMode = "inspector" | "farmer" | "both";
+type MobileSheet = "layers" | "summary" | "planner" | "selected" | null;
+
 type Totals = {
   vineyard: number;
   row: number;
@@ -77,18 +100,24 @@ const LAYER_MAP: Record<LayerKey, string[]> = {
 };
 
 const LAYER_DEFS: Array<{ key: LayerKey; label: string; swatch: string; legend: string }> = [
-  { key: "vineyard", label: "Canopies", swatch: "canopy", legend: "Canopy" },
+  { key: "vineyard", label: "Canopy", swatch: "canopy", legend: "Canopy" },
   { key: "row", label: "Rows", swatch: "row", legend: "Row" },
-  { key: "interrow", label: "Inter-row Areas", swatch: "interrow", legend: "Inter-row" },
+  { key: "interrow", label: "Inter-row", swatch: "interrow", legend: "Inter-row" },
   { key: "waste", label: "Waste", swatch: "waste", legend: "Waste" },
-  { key: "inspection", label: "Inspection Points", swatch: "inspection", legend: "Inspection" },
-  { key: "inspector", label: "Inspector walk", swatch: "inspector", legend: "Inspector" },
-  { key: "farmer", label: "Farmer walk", swatch: "farmer", legend: "Farmer" },
+  { key: "inspector", label: "Inspector", swatch: "inspector", legend: "Inspector" },
+  { key: "farmer", label: "Farmer", swatch: "farmer", legend: "Farmer" },
+  { key: "inspection", label: "Inspections", swatch: "inspection", legend: "Inspection" },
   { key: "forbidden", label: "Forbidden", swatch: "forbidden", legend: "Forbidden" },
   { key: "passage", label: "Passages", swatch: "passage", legend: "Passage" },
 ];
 
-type Fc = { type?: string; features?: Array<{ properties?: Record<string, unknown>; geometry?: { type?: string } }> };
+type Fc = {
+  type?: string;
+  features?: Array<{
+    properties?: Record<string, unknown>;
+    geometry?: { type?: string; coordinates?: unknown };
+  }>;
+};
 
 async function fetchJson(url: string): Promise<Fc | null> {
   const r = await fetch(url);
@@ -194,18 +223,53 @@ export function VineyardMap() {
     waste: true,
     forbidden: true,
     passage: true,
-    inspection: true,
+    inspection: false,
     inspector: true,
-    farmer: true,
+    farmer: false,
   });
   const [totals, setTotals] = useState<Totals>({ vineyard: 0, row: 0, waste: 0 });
   const [sampleMode, setSampleMode] = useState(true);
-  const [panelsVisible, setPanelsVisible] = useState(true);
+  const [panelsVisible] = useState(true);
+  const [layersOpen, setLayersOpen] = useState(false);
+  const [footer, setFooter] = useState<FooterPane>("survey");
   const [plannerOpen, setPlannerOpen] = useState(false);
   const [walkMode, setWalkMode] = useState<WalkMode>("both");
   const [fullscreen, setFullscreen] = useState(false);
   const [message, setMessage] = useState("");
-  const [mapZoom, setMapZoom] = useState(16.6);
+  const [mapZoom, setMapZoom] = useState(17.6);
+  const [sheet, setSheet] = useState<MobileSheet>(null);
+  const [startLon, setStartLon] = useState(String(OFFICIAL_START[0]));
+  const [startLat, setStartLat] = useState(String(OFFICIAL_START[1]));
+  const [pickStart, setPickStart] = useState(false);
+  const [walkUi, setWalkUi] = useState<"idle" | "playing" | "paused">("idle");
+  const [speed, setSpeed] = useState<WalkSpeed>(1);
+  const walkBearing = useRef(0);
+  const walkCam = useRef<LonLat | null>(null);
+  const walksRef = useRef<{ inspector: LonLat[]; farmer: LonLat[] }>({ inspector: [], farmer: [] });
+  const pickStartRef = useRef(false);
+  const playRaf = useRef(0);
+  const speedRef = useRef<WalkSpeed>(1);
+  const walkRef = useRef<{
+    line: LonLat[];
+    cum: number[];
+    startM: number;
+    endM: number;
+    atM: number;
+    reduced: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    speedRef.current = speed;
+    if (walkUi !== "idle") {
+      setMessage(`${walkMode === "farmer" ? "Farmer" : "Inspector"} · ${speed}×`);
+    }
+    // walkUi / walkMode only gate the toast; speed is the trigger
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speed]);
+
+  useEffect(() => {
+    pickStartRef.current = pickStart;
+  }, [pickStart]);
 
   useEffect(() => {
     const onChange = () => setFullscreen(Boolean(document.fullscreenElement));
@@ -230,14 +294,14 @@ export function VineyardMap() {
       try {
         const maplibre = await import("maplibre-gl");
         if (!mapEl.current || cancelled) return;
-        maplibre.config.WORKER_URL = `${window.location.origin}/maplibre-gl-worker.mjs`;
+        maplibre.config.WORKER_URL = `${window.location.origin}${asset("/maplibre-gl-worker.mjs")}`;
 
         const [packed, sample, inspectorRaw, farmerRaw, csvText] = await Promise.all([
-          fetchJson("/layers/layers.geojson"),
-          fetchJson("/layers/sample.geojson"),
-          fetchJson("/layers/route.geojson"),
-          fetchJson("/layers/route-farmer.geojson"),
-          fetch("/layers/measurements.csv").then((r) => (r.ok ? r.text() : "")),
+          fetchJson(asset("/layers/layers.geojson")),
+          fetchJson(asset("/layers/sample.geojson")),
+          fetchJson(asset("/layers/route.geojson")),
+          fetchJson(asset("/layers/route-farmer.geojson")),
+          fetch(asset("/layers/measurements.csv")).then((r) => (r.ok ? r.text() : "")),
         ]);
         if (!packed && !sample) throw new Error("no layer GeoJSON in /layers/");
 
@@ -252,6 +316,7 @@ export function VineyardMap() {
         };
         const inspector = toLonLatCollection(inspectorRaw || { features: [] });
         const farmer = toLonLatCollection(farmerRaw || { features: [] });
+        walksRef.current = { inspector: lineCoords(inspector), farmer: lineCoords(farmer) };
         setSampleMode(!hasRealCanopy || sampleData.features.some(isSampleFeature));
 
         const feats = sampleData.features as Array<{ properties?: { kind?: string } }>;
@@ -272,17 +337,11 @@ export function VineyardMap() {
         });
         setStatus(feats.length ? "ready" : "empty");
 
-        map = new maplibre.Map({
+        const created = new maplibre.Map({
           container: mapEl.current,
           style: {
             version: 8,
             sources: {
-              osm: {
-                type: "raster",
-                tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-                tileSize: 256,
-                attribution: "© OpenStreetMap",
-              },
               siret3: {
                 type: "raster",
                 tiles: [SIRET3_XYZ],
@@ -291,31 +350,46 @@ export function VineyardMap() {
               },
             },
             layers: [
-              { id: "osm", type: "raster", source: "osm" },
-              { id: "siret3", type: "raster", source: "siret3", paint: { "raster-opacity": 0.92 } },
+              { id: "bg", type: "background", paint: { "background-color": "#0b0c0b" } },
+              { id: "siret3", type: "raster", source: "siret3", paint: { "raster-opacity": 1 } },
             ],
           },
           center: OFFICIAL_START,
-          zoom: 16.6,
-          attributionControl: true,
+          zoom: 17.2,
+          minZoom: 15.1,
+          maxZoom: 19.6,
+          maxBounds: STUDY_BOUNDS,
+          renderWorldCopies: false,
+          attributionControl: {},
         });
-        mapRef.current = map;
-        map.on("error", (ev) => {
+        map = created;
+        mapRef.current = created;
+        created.on("error", (ev) => {
           const msg = ev.error?.message || "";
-          if (msg.includes("siret3") && map.getLayer("siret3")) {
-            map.setPaintProperty("siret3", "raster-opacity", 0);
+          if (msg.includes("siret3") && created.getLayer("siret3")) {
+            created.setPaintProperty("siret3", "raster-opacity", 0);
           }
           if (msg.includes("Worker") || msg.includes("actors") || msg.includes("siret3") || msg.includes("Failed to fetch")) return;
         });
-        map.on("zoom", () => setMapZoom(map.getZoom()));
+        created.on("zoom", () => setMapZoom(created.getZoom()));
 
-        map.on("load", () => {
-          if (!map || cancelled) return;
-          map.resize();
-          map.addSource("sample", { type: "geojson", data: sampleData as GeoJSON.GeoJSON });
-          map.addSource("inspector", { type: "geojson", data: inspector as GeoJSON.GeoJSON });
-          map.addSource("farmer", { type: "geojson", data: farmer as GeoJSON.GeoJSON });
-          map.addSource("start", {
+        created.on("load", () => {
+          if (cancelled) return;
+          created.resize();
+          created.fitBounds(STUDY_BOUNDS, { padding: 40, duration: 0, maxZoom: 17.4 });
+          created.jumpTo({ pitch: 0, bearing: 0 });
+          created.addSource("sample", { type: "geojson", data: sampleData as GeoJSON.GeoJSON });
+          created.addSource("inspector", { type: "geojson", data: inspector as GeoJSON.GeoJSON });
+          created.addSource("farmer", { type: "geojson", data: farmer as GeoJSON.GeoJSON });
+          created.addSource("walker", {
+            type: "geojson",
+            data: {
+              type: "Feature",
+              properties: {},
+              geometry: { type: "Point", coordinates: OFFICIAL_START },
+            },
+          });
+          created.addSource("start", {
             type: "geojson",
             data: {
               type: "FeatureCollection",
@@ -329,7 +403,7 @@ export function VineyardMap() {
             },
           });
 
-          map.addLayer({
+          created.addLayer({
             id: "vineyard-fill",
             type: "fill",
             source: "sample",
@@ -340,7 +414,7 @@ export function VineyardMap() {
             ],
             paint: { "fill-color": "#166534", "fill-opacity": 0.32 },
           });
-          map.addLayer({
+          created.addLayer({
             id: "vineyard-pt",
             type: "circle",
             source: "sample",
@@ -351,67 +425,85 @@ export function VineyardMap() {
             ],
             paint: { "circle-color": "#166534", "circle-radius": 3.2, "circle-opacity": 0.75 },
           });
-          map.addLayer({
+          created.addLayer({
             id: "interrow-fill",
             type: "fill",
             source: "sample",
             filter: ["==", ["get", "kind"], "interrow_area"],
             paint: { "fill-color": "#a3e635", "fill-opacity": 0.22 },
           });
-          map.addLayer({
+          created.addLayer({
             id: "passage-fill",
             type: "fill",
             source: "sample",
             filter: ["==", ["get", "kind"], "passage"],
             paint: { "fill-color": "#94a3b8", "fill-opacity": 0.28 },
           });
-          map.addLayer({
+          created.addLayer({
             id: "forbidden-fill",
             type: "fill",
             source: "sample",
             filter: ["==", ["get", "kind"], "forbidden"],
             paint: { "fill-color": "#b91c1c", "fill-opacity": 0.4 },
           });
-          map.addLayer({
+          created.addLayer({
             id: "waste-fill",
             type: "fill",
             source: "sample",
             filter: ["==", ["get", "kind"], "waste"],
             paint: { "fill-color": "#ffa443", "fill-opacity": 0.75 },
           });
-          map.addLayer({
+          created.addLayer({
             id: "row-line",
             type: "line",
             source: "sample",
             filter: ["==", ["get", "kind"], "row"],
             paint: { "line-color": "#d1fb55", "line-width": 2.2 },
           });
-          map.addLayer({
+          created.addLayer({
             id: "inspector-line",
             type: "line",
             source: "inspector",
             filter: ["==", ["get", "kind"], "route"],
             paint: { "line-color": "#438bff", "line-width": 3.2, "line-dasharray": [1.6, 1] },
           });
-          map.addLayer({
+          created.addLayer({
             id: "farmer-line",
             type: "line",
             source: "farmer",
             filter: ["==", ["get", "kind"], "route"],
             paint: { "line-color": "#f05d55", "line-width": 2.8, "line-dasharray": [0.7, 1.3] },
           });
-          map.addLayer({
+          created.addLayer({
             id: "inspection-pt",
             type: "circle",
             source: "sample",
             filter: ["==", ["get", "kind"], "inspection"],
             paint: { "circle-color": "#38bdf8", "circle-radius": 4.5, "circle-stroke-width": 1, "circle-stroke-color": "#fff" },
           });
-          map.addLayer({
+          created.addLayer({
             id: "start-pt",
             type: "circle",
             source: "start",
             paint: { "circle-color": "#438bff", "circle-radius": 7, "circle-stroke-width": 2, "circle-stroke-color": "#fff" },
+          });
+          created.addLayer({
+            id: "walker-pt",
+            type: "circle",
+            source: "walker",
+            paint: {
+              "circle-color": "#ffffff",
+              "circle-radius": 7,
+              "circle-stroke-width": 3,
+              "circle-stroke-color": "#43a047",
+            },
+          });
+          created.on("click", (e) => {
+            if (!pickStartRef.current) return;
+            setStartLon(e.lngLat.lng.toFixed(7));
+            setStartLat(e.lngLat.lat.toFixed(7));
+            setPickStart(false);
+            setMessage("Start pinned on the map");
           });
 
           for (const id of [
@@ -427,20 +519,23 @@ export function VineyardMap() {
             "inspection-pt",
             "start-pt",
           ]) {
-            map.on("mouseenter", id, () => {
-              map.getCanvas().style.cursor = "pointer";
+            created.on("mouseenter", id, () => {
+              created.getCanvas().style.cursor = "pointer";
             });
-            map.on("mouseleave", id, () => {
-              map.getCanvas().style.cursor = "";
+            created.on("mouseleave", id, () => {
+              created.getCanvas().style.cursor = "";
             });
-            map.on("click", id, (e) => {
+            created.on("click", id, (e) => {
               const f = e.features?.[0];
               if (!f) return;
               setSelected(selectedFromClick(id, (f.properties || {}) as Record<string, unknown>));
+              setSheet("selected");
+              setFooter("inspect");
+              setPlannerOpen(false);
             });
           }
 
-          applyLayerVisibility(map, layers);
+          applyLayerVisibility(created, layers);
         });
         ro = new ResizeObserver(() => map?.resize());
         if (mapEl.current) ro.observe(mapEl.current);
@@ -454,6 +549,7 @@ export function VineyardMap() {
     boot();
     return () => {
       cancelled = true;
+      cancelAnimationFrame(playRaf.current);
       ro?.disconnect();
       mapRef.current = undefined;
       map?.remove();
@@ -468,12 +564,17 @@ export function VineyardMap() {
     applyLayerVisibility(map, layers);
   }, [layers]);
 
+  useEffect(() => {
+    const id = window.requestAnimationFrame(() => mapRef.current?.resize());
+    return () => window.cancelAnimationFrame(id);
+  }, [footer]);
+
   function toggleLayer(key: LayerKey) {
     setLayers((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
   function recenter() {
-    mapRef.current?.flyTo({ center: OFFICIAL_START, zoom: 16.6 });
+    mapRef.current?.flyTo({ center: OFFICIAL_START, zoom: 17.6 });
   }
 
   async function toggleFullscreen() {
@@ -485,18 +586,130 @@ export function VineyardMap() {
     }
   }
 
-  function showWalk() {
+  function activeLine(): LonLat[] {
+    if (walkMode === "farmer") return walksRef.current.farmer;
+    return walksRef.current.inspector;
+  }
+
+  function applyWalkFrame(atM: number, dt: number) {
+    const walk = walkRef.current;
+    if (!walk) return;
+    const walkerPos = pointAtDistance(walk.line, walk.cum, atM);
+    const look = pointAtDistance(walk.line, walk.cum, Math.min(walk.endM, atM + 40));
+    const camTarget = pointAtDistance(walk.line, walk.cum, Math.max(walk.startM, atM - 22)).point;
+    walkCam.current = walkCam.current ? lerpLonLat(walkCam.current, camTarget, Math.min(1, dt * 2.4)) : camTarget;
+    walkBearing.current = lerpBearing(walkBearing.current, look.bearing, Math.min(1, dt * 1.35));
+
+    const walker = mapRef.current?.getSource("walker") as { setData?: (d: GeoJSON.GeoJSON) => void } | undefined;
+    walker?.setData?.({
+      type: "Feature",
+      properties: {},
+      geometry: { type: "Point", coordinates: walkerPos.point },
+    });
+    const map = mapRef.current;
+    if (!map) return;
+    const span = Math.max(1, walk.endM - walk.startM);
+    const intro = Math.min(1, (atM - walk.startM) / 40);
+    map.jumpTo({
+      center: walkCam.current,
+      zoom: walk.reduced ? 16.8 : 17.05,
+      pitch: walk.reduced ? 0 : 42 * Math.max(intro, 0.35),
+      bearing: walk.reduced ? 0 : walkBearing.current,
+    });
+    writeProgress((atM - walk.startM) / span);
+  }
+
+  function loopWalk(now: number) {
+    const walk = walkRef.current;
+    if (!walk) return;
+    const last = (loopWalk as { last?: number }).last ?? now;
+    const dt = Math.min(0.05, (now - last) / 1000);
+    (loopWalk as { last?: number }).last = now;
+    walk.atM = Math.min(walk.endM, walk.atM + WALK_MPS * speedRef.current * dt);
+    applyWalkFrame(walk.atM, dt);
+    if (walk.atM >= walk.endM) {
+      pauseWalk();
+      setMessage("Walk finished");
+      return;
+    }
+    playRaf.current = requestAnimationFrame(loopWalk);
+  }
+
+  function writeProgress(ratio: number) {
+    const value = String(Math.round(Math.min(1, Math.max(0, ratio)) * 1000));
+    document.querySelectorAll<HTMLInputElement>(".walk-progress-input").forEach((el) => {
+      if (el.value !== value) el.value = value;
+    });
+  }
+
+  function pauseWalk() {
+    setWalkUi((cur) => (cur === "idle" ? "idle" : "paused"));
+    cancelAnimationFrame(playRaf.current);
+    playRaf.current = 0;
+  }
+
+  function stopWalk() {
+    cancelAnimationFrame(playRaf.current);
+    playRaf.current = 0;
+    walkRef.current = null;
+    walkCam.current = null;
+    setWalkUi("idle");
+    writeProgress(0);
+    const map = mapRef.current;
+    if (map?.isStyleLoaded()) {
+      map.easeTo({ pitch: 0, bearing: 0, duration: 700, essential: true });
+    }
+  }
+
+  function armWalk(): boolean {
     if (walkMode === "inspector") {
       setLayers((prev) => ({ ...prev, inspector: true, farmer: false }));
-      setMessage(`Inspector walk ${fmtM(totals.inspectorM)} · gaps + waste`);
     } else if (walkMode === "farmer") {
       setLayers((prev) => ({ ...prev, inspector: false, farmer: true }));
-      setMessage(`Farmer walk ${fmtM(totals.farmerM)} · waste only`);
     } else {
       setLayers((prev) => ({ ...prev, inspector: true, farmer: true }));
-      setMessage(`Both walks · inspector ${fmtM(totals.inspectorM)} · farmer ${fmtM(totals.farmerM)}`);
     }
-    recenter();
+
+    const line = activeLine();
+    const pinned = parseLonLat(startLon, startLat) || OFFICIAL_START;
+    if (line.length < 2) {
+      setMessage("No walk line loaded");
+      mapRef.current?.flyTo({ center: pinned, zoom: 16.6 });
+      return false;
+    }
+
+    const snap = nearestIndex(line, pinned);
+    const cum = cumDist(line);
+    const startM = cum[snap.index];
+    const endM = cum[cum.length - 1];
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    walkRef.current = { line, cum, startM, endM, atM: startM, reduced };
+    walkBearing.current = pointAtDistance(line, cum, startM).bearing;
+    walkCam.current = pointAtDistance(line, cum, Math.max(startM, startM - 22)).point;
+    applyWalkFrame(startM, 1);
+    writeProgress(0);
+    return true;
+  }
+
+  function kickWalk() {
+    setWalkUi("playing");
+    mapRef.current?.stop();
+    setMessage(`${walkMode === "farmer" ? "Farmer" : "Inspector"} · ${speedRef.current}×`);
+    cancelAnimationFrame(playRaf.current);
+    (loopWalk as { last?: number }).last = undefined;
+    playRaf.current = requestAnimationFrame(loopWalk);
+  }
+
+  function resumeWalk() {
+    if (!walkRef.current && !armWalk()) return;
+    kickWalk();
+  }
+
+  function seekWalk(ratio: number) {
+    const walk = walkRef.current;
+    if (!walk) return;
+    walk.atM = walk.startM + Math.min(1, Math.max(0, ratio)) * (walk.endM - walk.startM);
+    applyWalkFrame(walk.atM, 1);
   }
 
   const blocks = totals.nBlocks ?? String(totals.vineyard || "—");
@@ -511,63 +724,203 @@ export function VineyardMap() {
   const scaleM = Math.round(200 / Math.max(0.4, mapZoom / 16.6));
 
   return (
-    <main className="workspace" ref={workspace}>
-      <div ref={mapEl} className="map-surface" />
-
-      {status === "loading" && (
-        <div className="absolute inset-0 grid place-items-center bg-black/35 text-sm" style={{ zIndex: 10 }}>
-          Loading Sireț3 layers…
-        </div>
-      )}
-
-      <header className="topbar absolute inset-x-0 top-0 z-30 flex items-center justify-between">
-        <div className="brand flex items-center gap-3">
-          <span className="brand-mark">
-            <Leaf size={22} strokeWidth={2.4} />
+    <main className={`workspace ${footer !== "survey" ? "is-footer-open" : ""}`} ref={workspace}>
+      <div className={`map-window ${footer !== "survey" ? "is-open" : ""}`}>
+        <div className="map-window-bar">
+          <span className="window-dots" aria-hidden="true">
+            <i />
+            <i />
+            <i />
           </span>
-          <span>VINEYARD INSPECTOR</span>
+          <span className="window-title">Sireț3</span>
+          <span className="window-meta">{sampleMode ? "Sample" : "Marcaj"}</span>
         </div>
-        <div className="top-actions flex items-center gap-3">
-          <IconAction
-            label={panelsVisible ? "Hide panels" : "Show panels"}
-            onClick={() => setPanelsVisible((value) => !value)}
-            pressed={!panelsVisible}
+        <div className={`map-stage ${footer !== "survey" ? "is-docked" : ""}`}>
+          <div ref={mapEl} className="map-surface" />
+          <div className="map-controls flex flex-col" aria-label="Map controls">
+            <span className="desktop-only">
+              <IconAction
+                label="Layers"
+                pressed={layersOpen}
+                onClick={() => {
+                  setLayersOpen((v) => !v);
+                  setFooter((cur) => (cur === "layers" ? "survey" : "layers"));
+                }}
+              >
+                <Layers3 size={16} strokeWidth={1.75} />
+              </IconAction>
+            </span>
+            <IconAction label="Zoom in" onClick={() => mapRef.current?.zoomIn()}>
+              <Plus size={16} />
+            </IconAction>
+            <IconAction label="Zoom out" onClick={() => mapRef.current?.zoomOut()}>
+              <Minus size={16} />
+            </IconAction>
+            <span className="desktop-only">
+              <IconAction label="Go to start point" title="Go to start point" onClick={recenter}>
+                <Navigation size={16} strokeWidth={1.75} />
+              </IconAction>
+            </span>
+          </div>
+        </div>
+        <section className={`dark-footer ${footer !== "survey" ? "is-open" : ""}`} aria-label="Survey footer">
+          <div className="footer-metrics">
+            <span className="metric"><small>Blocks</small><b>{blocks}</b></span>
+            <span className="metric"><small>Rows</small><b>{rows}</b></span>
+            <span className="metric"><small>Canopy</small><b>{fmtHa(totals.canopyHa)}</b></span>
+            <span className="metric"><small>Inter-row</small><b>{fmtHa(totals.interrowHa)}</b></span>
+            <span className="metric"><small>Walk</small><b>{routeKm}</b></span>
+            <button
+              type="button"
+              className={footer === "plan" ? "is-active" : ""}
+              onClick={() => {
+                const open = footer !== "plan";
+                setPlannerOpen(open);
+                setFooter(open ? "plan" : "survey");
+              }}
+            >
+              Plan
+            </button>
+          </div>
+          {footer === "inspect" && selected && (
+            <div className="footer-body">
+              <div className="footer-head">
+                <h2>{selected.title}</h2>
+                <button type="button" onClick={() => { setSelected(null); setFooter("survey"); }} aria-label="Close feature">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="stat-list">
+                {selected.vineyardId && <Detail label="Vineyard ID" value={selected.vineyardId} />}
+                {selected.rowId && <Detail label="Row ID" value={selected.rowId} />}
+                {selected.lengthM != null && !Number.isNaN(selected.lengthM) && (
+                  <Detail label="Length" value={`${selected.lengthM.toFixed(1)} m`} />
+                )}
+                {selected.structure && (
+                  <Detail
+                    label="Structure"
+                    value={selected.structure === "disrupted" ? "Disrupted" : selected.structure}
+                    alert={selected.structure === "disrupted"}
+                  />
+                )}
+                {selected.note && <Detail label="Notes" value={selected.note} />}
+              </div>
+            </div>
+          )}
+          {footer === "plan" && (
+            <div className="footer-body">
+              <div className="footer-head">
+                <h2>Route</h2>
+                <button type="button" onClick={() => { setPlannerOpen(false); setFooter("survey"); }} aria-label="Close route planner">
+                  <X size={16} />
+                </button>
+              </div>
+              <p className="field-label">Which walk</p>
+              <div className="segmented three flex gap-1">
+                <Choice active={walkMode === "inspector"} onClick={() => setWalkMode("inspector")} label="Inspector" />
+                <Choice active={walkMode === "farmer"} onClick={() => setWalkMode("farmer")} label="Farmer" />
+                <Choice active={walkMode === "both"} onClick={() => setWalkMode("both")} label="Both" />
+              </div>
+              <p className="field-label">Start (WGS84)</p>
+              <div className="coord-row">
+                <label>
+                  Lon
+                  <input inputMode="decimal" value={startLon} onChange={(e) => setStartLon(e.target.value)} aria-label="Start longitude" />
+                </label>
+                <label>
+                  Lat
+                  <input inputMode="decimal" value={startLat} onChange={(e) => setStartLat(e.target.value)} aria-label="Start latitude" />
+                </label>
+              </div>
+              <div className="segmented three flex gap-1">
+                <Choice
+                  active={startLon === String(OFFICIAL_START[0]) && startLat === String(OFFICIAL_START[1])}
+                  onClick={() => {
+                    setStartLon(String(OFFICIAL_START[0]));
+                    setStartLat(String(OFFICIAL_START[1]));
+                    setPickStart(false);
+                  }}
+                  label="Official"
+                />
+                <Choice active={pickStart} onClick={() => setPickStart((v) => !v)} label={pickStart ? "Tap map…" : "Pin on map"} />
+                <Choice active={false} onClick={stopWalk} label="Reset" />
+              </div>
+              <p className="field-label">Speed</p>
+              <div className="speed-row flex gap-1">
+                {SPEEDS.map((n) => (
+                  <SpeedChip key={n} n={n} active={speed === n} onClick={() => setSpeed(n)} />
+                ))}
+              </div>
+              {walkUi === "playing" ? (
+                <button type="button" className="build-button flex items-center justify-center gap-3" onClick={pauseWalk}>
+                  <Pause size={18} strokeWidth={1.8} />
+                  Pause
+                </button>
+              ) : (
+                <button type="button" className="build-button flex items-center justify-center gap-3" onClick={resumeWalk}>
+                  <Play size={18} strokeWidth={1.8} />
+                  {walkUi === "paused" ? "Resume" : "Play"}
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+      </div>
+
+      <AnimatePresence>
+        {status === "loading" && (
+          <motion.div
+            className="load-pill"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
           >
-            {panelsVisible ? <PanelLeftClose size={23} strokeWidth={1.8} /> : <PanelLeftOpen size={23} strokeWidth={1.8} />}
-          </IconAction>
-          <IconAction
-            label={fullscreen ? "Exit full screen" : "Enter full screen"}
-            onClick={toggleFullscreen}
-            pressed={fullscreen}
-          >
-            {fullscreen ? <Minimize2 size={22} strokeWidth={1.9} /> : <Expand size={22} strokeWidth={1.9} />}
-          </IconAction>
+            <span className="status-dot" />
+            Loading Sireț3 layers
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <header className="topbar absolute inset-x-0 top-0 z-30 flex items-center">
+        <div className="brand-bar">
+          <strong className="brand-name">Sireț3</strong>
+          <span className="brand-meta">{sampleMode ? "Sample" : "Demetra"}</span>
+        </div>
+        <div className="top-actions flex items-center">
+          <span className="desktop-only">
+            <IconAction
+              label={fullscreen ? "Exit full screen" : "Enter full screen"}
+              onClick={toggleFullscreen}
+              pressed={fullscreen}
+            >
+              {fullscreen ? <Minimize2 size={16} strokeWidth={1.75} /> : <Expand size={16} strokeWidth={1.75} />}
+            </IconAction>
+          </span>
           <IconAction label="Reload layers" onClick={() => setReload((n) => n + 1)}>
-            <RefreshCw size={20} strokeWidth={1.9} />
+            <RefreshCw size={16} strokeWidth={1.75} />
           </IconAction>
         </div>
       </header>
 
       {panelsVisible && (
         <>
-          <section className="identity-block" aria-label="Vineyard status">
-            <div className={`status-pill flex items-center gap-2 ${status === "loading" ? "is-processing" : ""}`}>
-              <span className="status-dot" />
-              {status === "loading" ? "Processing…" : status === "error" ? "Map error" : status === "empty" ? "No features" : "Analysis Complete"}
-            </div>
-            <h1>Sireț3</h1>
-            <div className="identity-meta flex items-center gap-2">
-              <p>
-                Aerial inspection <span>·</span> EPSG:32635
-              </p>
-              <div className={sampleMode ? "demo-tag" : "demo-tag is-live"}>{sampleMode ? "SAMPLE" : "MARCAJ"}</div>
-            </div>
-          </section>
-
-          <section className="panel layers-panel" aria-labelledby="layers-heading">
-            <div className="panel-title flex items-center gap-3">
-              <Layers3 size={22} fill="white" strokeWidth={1.6} />
+          {(layersOpen || sheet === "layers") && (
+          <section className={`panel layers-panel ${sheet === "layers" ? "is-sheet-open" : ""}`} aria-labelledby="layers-heading">
+            <div className="sheet-handle" aria-hidden="true" />
+            <div className="panel-title flex items-center gap-2">
               <h2 id="layers-heading">Layers</h2>
+              <button
+                type="button"
+                className="collapse-button"
+                onClick={() => {
+                  setLayersOpen(false);
+                  setSheet(null);
+                }}
+                aria-label="Close layers"
+              >
+                <X size={18} />
+              </button>
             </div>
             <div className="layer-list">
               {LAYER_DEFS.map(({ key, label, swatch }) => (
@@ -587,28 +940,35 @@ export function VineyardMap() {
               ))}
             </div>
           </section>
+          )}
 
           <div className="right-panel-stack">
-            <section className="panel summary-panel" aria-labelledby="summary-heading">
-              <div className="panel-title flex items-center gap-3">
-                <BarChart3 size={23} fill="white" strokeWidth={1.5} />
-                <h2 id="summary-heading">Vineyard Summary</h2>
+            <section className={`panel summary-panel ${sheet === "summary" ? "is-sheet-open" : ""}`} aria-labelledby="summary-heading">
+              <div className="sheet-handle" aria-hidden="true" />
+              <div className="panel-title flex items-center gap-2">
+                <h2 id="summary-heading">Survey</h2>
+                <button type="button" className="collapse-button sheet-close" onClick={() => setSheet(null)} aria-label="Close summary">
+                  <X size={18} />
+                </button>
               </div>
-              <div className="summary-grid grid grid-cols-2 gap-2">
-                <SummaryMetric icon={<Layers3 />} label="Blocks" value={blocks} />
-                <SummaryMetric icon={<Rows3 />} label="Rows" value={rows} />
-                <SummaryMetric icon={<Leaf />} label="Canopy Area" value={fmtHa(totals.canopyHa)} />
-                <SummaryMetric icon={<ScanLine />} label="Inter-row Area" value={fmtHa(totals.interrowHa)} />
-                <SummaryMetric icon={<Route />} label="Total Row Length" value={fmtM(totals.rowLengthM)} compact />
-                <SummaryMetric icon={<Route />} label="Route" value={routeKm} />
+              <div className="stat-list">
+                <Detail label="Blocks" value={blocks} />
+                <Detail label="Rows" value={rows} />
+                <Detail label="Canopy" value={fmtHa(totals.canopyHa)} />
+                <Detail label="Inter-row" value={fmtHa(totals.interrowHa)} />
+                <Detail label="Row length" value={fmtM(totals.rowLengthM)} />
+                <Detail label="Walk" value={routeKm} />
               </div>
             </section>
 
-            {!plannerOpen && (
-              <section className="panel selected-panel" aria-labelledby="selected-heading">
-                <div className="panel-title flex items-center gap-3">
-                  <Leaf size={23} fill="white" strokeWidth={1.3} />
-                  <h2 id="selected-heading">{selected?.title || "Selected Feature"}</h2>
+            {selected && (!plannerOpen || sheet === "selected") && (
+              <section className={`panel selected-panel ${sheet === "selected" ? "is-sheet-open" : ""}`} aria-labelledby="selected-heading">
+                <div className="sheet-handle" aria-hidden="true" />
+                <div className="panel-title flex items-center gap-2">
+                  <h2 id="selected-heading">{selected?.title || "Selected"}</h2>
+                  <button type="button" className="collapse-button sheet-close" onClick={() => setSheet(null)} aria-label="Close feature">
+                    <X size={18} />
+                  </button>
                 </div>
                 {selected ? (
                   <div className="detail-list">
@@ -633,12 +993,20 @@ export function VineyardMap() {
             )}
           </div>
 
-          {plannerOpen && (
-            <section className="panel route-planner" id="route-planner" aria-labelledby="planner-heading">
-              <div className="panel-title planner-title flex items-center gap-3">
-                <Route size={25} strokeWidth={1.6} />
-                <h2 id="planner-heading">Route Planner</h2>
-                <button type="button" className="collapse-button" onClick={() => setPlannerOpen(false)} aria-label="Close route planner">
+          {(plannerOpen || sheet === "planner") && (
+            <section className={`panel route-planner ${sheet === "planner" ? "is-sheet-open" : ""}`} id="route-planner" aria-labelledby="planner-heading">
+              <div className="sheet-handle" aria-hidden="true" />
+              <div className="panel-title planner-title flex items-center gap-2">
+                <h2 id="planner-heading">Route</h2>
+                <button
+                  type="button"
+                  className="collapse-button"
+                  onClick={() => {
+                    setPlannerOpen(false);
+                    setSheet(null);
+                  }}
+                  aria-label="Close route planner"
+                >
                   <Minus size={20} />
                 </button>
               </div>
@@ -649,10 +1017,80 @@ export function VineyardMap() {
                   <Choice active={walkMode === "farmer"} onClick={() => setWalkMode("farmer")} label="Farmer" />
                   <Choice active={walkMode === "both"} onClick={() => setWalkMode("both")} label="Both" />
                 </div>
-                <button type="button" className="build-button flex items-center justify-center gap-3" onClick={showWalk}>
-                  <Route size={24} strokeWidth={1.8} />
-                  Show walk
-                </button>
+                <p className="field-label">Start (WGS84)</p>
+                <div className="coord-row">
+                  <label>
+                    Lon
+                    <input
+                      inputMode="decimal"
+                      value={startLon}
+                      onChange={(e) => setStartLon(e.target.value)}
+                      aria-label="Start longitude"
+                    />
+                  </label>
+                  <label>
+                    Lat
+                    <input
+                      inputMode="decimal"
+                      value={startLat}
+                      onChange={(e) => setStartLat(e.target.value)}
+                      aria-label="Start latitude"
+                    />
+                  </label>
+                </div>
+                <div className="segmented three flex gap-1">
+                  <Choice
+                    active={startLon === String(OFFICIAL_START[0]) && startLat === String(OFFICIAL_START[1])}
+                    onClick={() => {
+                      setStartLon(String(OFFICIAL_START[0]));
+                      setStartLat(String(OFFICIAL_START[1]));
+                      setPickStart(false);
+                    }}
+                    label="Official"
+                  />
+                  <Choice
+                    active={pickStart}
+                    onClick={() => setPickStart((v) => !v)}
+                    label={pickStart ? "Tap map…" : "Pin on map"}
+                  />
+                  <Choice active={false} onClick={stopWalk} label="Reset" />
+                </div>
+                <p className="field-label">Speed</p>
+                <div className="speed-row flex gap-1">
+                  {SPEEDS.map((n) => (
+                    <SpeedChip key={n} n={n} active={speed === n} onClick={() => setSpeed(n)} />
+                  ))}
+                </div>
+                <label className="walk-progress">
+                  <span>Along walk</span>
+                  <input
+                    className="walk-progress-input"
+                    type="range"
+                    min={0}
+                    max={1000}
+                    defaultValue={0}
+                    onInput={(e) => {
+                      if (!walkRef.current && !armWalk()) return;
+                      seekWalk(Number((e.target as HTMLInputElement).value) / 1000);
+                    }}
+                    aria-label="Walk progress"
+                  />
+                </label>
+                {walkUi === "playing" ? (
+                  <button type="button" className="build-button flex items-center justify-center gap-3" onClick={pauseWalk}>
+                    <Pause size={20} strokeWidth={1.8} />
+                    Pause
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="build-button flex items-center justify-center gap-3"
+                    onClick={resumeWalk}
+                  >
+                    <Play size={20} strokeWidth={1.8} />
+                    {walkUi === "paused" ? "Resume" : "Play"}
+                  </button>
+                )}
                 <p className="route-caption">
                   Inspector {fmtM(totals.inspectorM)} <span>·</span> Farmer {fmtM(totals.farmerM)}
                 </p>
@@ -660,35 +1098,19 @@ export function VineyardMap() {
             </section>
           )}
 
-          <div className="map-controls flex flex-col gap-1" aria-label="Map controls">
-            <IconAction label="Zoom in" onClick={() => mapRef.current?.zoomIn()}>
-              <Plus size={25} />
-            </IconAction>
-            <IconAction label="Zoom out" onClick={() => mapRef.current?.zoomOut()}>
-              <Minus size={25} />
-            </IconAction>
-            <IconAction label="Go to start point" title="Go to start point" onClick={recenter}>
-              <Navigation size={22} fill="white" />
-            </IconAction>
-          </div>
-
-          <section className="legend panel flex items-center gap-4" aria-label="Map legend">
-            {LAYER_DEFS.map((layer) => (
-              <div key={layer.key} className="legend-item flex items-center gap-2">
-                <span className={`swatch swatch-${layer.swatch}`} aria-hidden="true" />
-                <span>{layer.legend}</span>
-              </div>
-            ))}
-          </section>
           <button
             type="button"
             className="plan-button flex items-center justify-center gap-3"
-            aria-expanded={plannerOpen}
+            aria-expanded={footer === "plan"}
             aria-controls="route-planner"
-            onClick={() => setPlannerOpen((value) => !value)}
+            onClick={() => {
+              const open = footer !== "plan";
+              setPlannerOpen(open);
+              setFooter(open ? "plan" : "survey");
+              if (open) setSelected(null);
+            }}
           >
-            <Route size={24} strokeWidth={1.8} />
-            Plan Route
+            Route
           </button>
           <div className="scale" aria-label={`Map scale approximately ${scaleM} metres`}>
             <div className="scale-labels">
@@ -707,21 +1129,129 @@ export function VineyardMap() {
         </>
       )}
 
-      {(message || error) && (
-        <div className="toast" role="status" aria-live="polite">
-          <span>{error || message}</span>
+      <AnimatePresence>
+        {sheet && (
+          <motion.button
+            type="button"
+            className="sheet-backdrop"
+            aria-label="Close panel"
+            onClick={() => setSheet(null)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {walkUi !== "idle" && (
+          <motion.div
+            className="playback-bar"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+          >
+            <button
+              type="button"
+              className="playback-play"
+              onClick={walkUi === "playing" ? pauseWalk : resumeWalk}
+              aria-label={walkUi === "playing" ? "Pause walk" : "Resume walk"}
+            >
+              {walkUi === "playing" ? <Pause size={18} strokeWidth={2} /> : <Play size={18} strokeWidth={2} />}
+            </button>
+            <input
+              className="walk-progress-input"
+              type="range"
+              min={0}
+              max={1000}
+              defaultValue={0}
+              onInput={(e) => {
+                if (!walkRef.current && !armWalk()) return;
+                seekWalk(Number((e.target as HTMLInputElement).value) / 1000);
+              }}
+              aria-label="Walk progress"
+            />
+            <div className="speed-row playback-speeds">
+              {SPEEDS.map((n) => (
+                <SpeedChip key={n} n={n} active={speed === n} onClick={() => setSpeed(n)} />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <nav className="mobile-dock" aria-label="Map tools">
           <button
             type="button"
+            className={sheet === "layers" ? "is-active" : ""}
+            aria-pressed={sheet === "layers"}
             onClick={() => {
-              setMessage("");
-              setError("");
+              setFooter((cur) => (cur === "layers" ? "survey" : "layers"));
+              setSheet((cur) => (cur === "layers" ? null : "layers"));
             }}
-            aria-label="Dismiss message"
           >
-            <X size={16} />
+            <Layers3 size={20} strokeWidth={1.9} />
+            Layers
           </button>
-        </div>
-      )}
+          <button
+            type="button"
+            className={sheet === "summary" ? "is-active" : ""}
+            aria-pressed={sheet === "summary"}
+            onClick={() => {
+              setFooter("survey");
+              setSheet((cur) => (cur === "summary" ? null : "summary"));
+            }}
+          >
+            <BarChart3 size={20} strokeWidth={1.9} />
+            Survey
+          </button>
+          <button
+            type="button"
+            className={sheet === "planner" ? "is-active" : ""}
+            aria-pressed={sheet === "planner"}
+            onClick={() => {
+              const open = sheet !== "planner";
+              setPlannerOpen(open);
+              setFooter(open ? "plan" : "survey");
+              setSheet((cur) => (cur === "planner" ? null : "planner"));
+            }}
+          >
+            <Route size={20} strokeWidth={1.9} />
+            Route
+          </button>
+          <button type="button" onClick={recenter}>
+            <Navigation size={20} strokeWidth={1.9} />
+            Start
+          </button>
+      </nav>
+
+      <AnimatePresence>
+        {(message || error) && (
+          <motion.div
+            className="toast"
+            role="status"
+            aria-live="polite"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+          >
+            <span>{error || message}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setMessage("");
+                setError("");
+              }}
+              aria-label="Dismiss message"
+            >
+              <X size={16} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {!panelsVisible && <div className="hidden-panels-hint">Panels hidden · use the top control to restore</div>}
     </main>
@@ -755,29 +1285,24 @@ function IconAction({
   );
 }
 
-function Choice({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+function SpeedChip({ n, active, onClick }: { n: WalkSpeed; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
-      className={`choice flex items-center justify-center gap-2 ${active ? "is-active" : ""}`}
+      className={`speed-chip ${active ? "is-active" : ""}`}
       onClick={onClick}
       aria-pressed={active}
     >
-      <span className="choice-radio" />
-      <span>{label}</span>
+      {n}×
     </button>
   );
 }
 
-function SummaryMetric({ icon, label, value, compact = false }: { icon: ReactNode; label: string; value: string; compact?: boolean }) {
+function Choice({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (
-    <div className={`metric flex items-center gap-3 ${compact ? "metric-compact" : ""}`}>
-      <span className="metric-icon">{icon}</span>
-      <div>
-        <span className="metric-label">{label}</span>
-        <strong>{value}</strong>
-      </div>
-    </div>
+    <button type="button" className={`choice ${active ? "is-active" : ""}`} onClick={onClick} aria-pressed={active}>
+      {label}
+    </button>
   );
 }
 

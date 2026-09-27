@@ -9,6 +9,7 @@ from pathlib import Path
 from .crs import from_work_xy, transformer
 from .cvat11 import CvatImage, CvatShape
 from .cvat_parse import parse_cvat11, parse_cvat_zip
+from .example_yolo import canonical_tile_name
 from .georef import pixels_to_xy_once
 from .ids import ProjectedPoly
 
@@ -155,9 +156,10 @@ def projected_from_cvat(images: list[CvatImage], tiles_dir: Path) -> list[Projec
     for im in images:
         if not im.shapes:
             continue
-        tile = tiles_dir / im.name
+        tile_name = canonical_tile_name(im.name)
+        tile = tiles_dir / tile_name
         if not tile.is_file():
-            raise FileNotFoundError(f"missing GeoTIFF for {im.name} under {tiles_dir}")
+            raise FileNotFoundError(f"missing GeoTIFF for {im.name} ({tile_name}) under {tiles_dir}")
         for shape in im.shapes:
             if shape.label not in _LABELS:
                 continue
@@ -170,7 +172,7 @@ def projected_from_cvat(images: list[CvatImage], tiles_dir: Path) -> list[Projec
                 ProjectedPoly(
                     kind=shape.label,
                     coords=xy,
-                    tile=im.name,
+                    tile=tile_name,
                     vineyard_id=attrs.get("vineyard_id") or None,
                     row_id=attrs.get("row_id") or None,
                     row_structure=attrs.get("row_structure") or None,

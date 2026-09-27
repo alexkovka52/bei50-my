@@ -1,16 +1,29 @@
-import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Rubik, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 
-const manrope = Manrope({
-  variable: "--font-manrope",
+const rubik = Rubik({
+  variable: "--font-rubik",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const sourceSans = Source_Sans_3({
+  variable: "--font-source",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Vineyard Inspector",
+  title: "Sireț3 · Demetra",
   description:
     "Marcaj vineyard viewer: Sireț3 ortho, IDs, planar measurements, inspector and farmer walks.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -20,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${manrope.variable} min-h-dvh antialiased`}>{children}</body>
+      <body className={`${rubik.variable} ${sourceSans.variable} min-h-dvh antialiased`}>{children}</body>
     </html>
   );
 }

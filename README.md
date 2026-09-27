@@ -12,25 +12,25 @@ Challenge context (do not lose):
 - How to draw labels: [`docs/annotation-rules.md`](docs/annotation-rules.md)
 - Provider briefing vs PDF: [`docs/provider-briefing.md`](docs/provider-briefing.md)
 - SOTA lock (what we train): [`docs/sota-research.md`](docs/sota-research.md)
-- What this repo still has to build: [`docs/must-implement.md`](docs/must-implement.md)
+- Brief → repo map (some boxes stale): [`docs/must-implement.md`](docs/must-implement.md)
 - Weekend runbook: [`docs/vineyard-plan.md`](docs/vineyard-plan.md)
 - Research catalog: [`docs/vineyard-research.md`](docs/vineyard-research.md)
 - Agent file index: [`AGENTS.md`](AGENTS.md)
 
 ## What this repo is
 
-A usable scaffold plus the evidence pack. It does **not** invent Sireț3 labels. Training uses other public datasets. Manual Sireț3 drawing stays in Marcaj.
+End-to-end Sireț3 pipeline: public-data train → GIS derive → Marcaj correct → planar measurements and two closed walks in **EPSG:32635** → MapLibre. Manual Sireț3 drawing stays in Marcaj.
 
 ```
 docs/                 research + plan
 data/challenge/       official Marcaj pack (tiles, route, rules, examples, source ortho)
-processing/           rasterio / geopandas / shapely / NetworkX pipeline
-models/               YOLO11 + SAM/SAM2/MobileSAM stubs
-web/                  Next.js + MapLibre (port 43173)
+processing/           rasterio / geopandas / shapely / NetworkX (`siret3` CLI)
+models/               YOLO11m-seg canopy + YOLO12 waste
+web/                  Next.js + MapLibre (port 43173) — live layers, not SAMPLE
 data/tiles/           unzip the 311 siret3_rXXX_cYYY.tif here before inventory
-route.geojson         inspector walk: gaps + waste (25% file; sample until Marcaj export)
-route_farmer.geojson  farmer walk: waste only (required; generate with the inspector file)
-measurements.csv      planar m / m² (sample until Marcaj export)
+route.geojson         inspector walk: gaps + waste (25% file, 7.99 km, EPSG:32635)
+route_farmer.geojson  farmer walk: waste only (4.29 km, same start)
+measurements.csv      planar m / m² / ha from the current stitch
 ```
 
 Agent notes: [`AGENTS.md`](AGENTS.md). Pack index: [`data/challenge/README.md`](data/challenge/README.md).
@@ -88,11 +88,11 @@ npm install
 npm run dev
 ```
 
-Opens [http://127.0.0.1:43173](http://127.0.0.1:43173). Sample layers are synthetic near the Sireț3 bbox. The raster is the public OpenAerialMap XYZ for item `683060c4025981aa411253c8`.
+Local: [http://127.0.0.1:43173](http://127.0.0.1:43173). Public jury URL: [https://dementra.md](https://dementra.md). Packed layers in `web/public/layers/` are live Sireț3 geometry (badge **MARCAJ**). The raster is the public OpenAerialMap XYZ for item `683060c4025981aa411253c8`. The Demetra farm app stays on `dementra.prodiusenterprise.com`.
 
 ## Repro: model → one import → publish → measure → route → map
 
-1. **Model (H100).** Riseholme COCO [10.5281/zenodo.19234907](https://doi.org/10.5281/zenodo.19234907) (CC-BY-4.0) + DroneWaste [10.5281/zenodo.17045559](https://doi.org/10.5281/zenodo.17045559) (CC-BY-4.0). Checkpoints live in `models/weights/` and on the [v0.1.0 GitHub release](https://github.com/CristianProdius/bei50/releases/tag/v0.1.0):
+1. **Model (NVIDIA H100 80 GB, `ssh gpu-server`, `/home/prodius/projects/bei50`).** Riseholme COCO [10.5281/zenodo.19234907](https://doi.org/10.5281/zenodo.19234907) (CC-BY-4.0) + DroneWaste [10.5281/zenodo.17045559](https://doi.org/10.5281/zenodo.17045559) (CC-BY-4.0). Tracked weights: `models/weights/vineyard.pt`, `models/weights/waste.pt`. Same files on the [v0.1.0 GitHub release](https://github.com/CristianProdius/bei50/releases/tag/v0.1.0):
 
    ```bash
    mkdir -p models/weights
@@ -100,7 +100,15 @@ Opens [http://127.0.0.1:43173](http://127.0.0.1:43173). Sample layers are synthe
    curl -L -o models/weights/waste.pt https://github.com/CristianProdius/bei50/releases/download/v0.1.0/waste.pt
    ```
 
-   `vineyard.pt` is YOLO11m-seg (Riseholme). `waste.pt` is YOLO12m detect (DroneWaste). To retrain:
+   | Weight | Arch | Train | Val | 311-tile infer |
+   | --- | --- | --- | --- | --- |
+   | `vineyard.pt` | YOLO11m-seg | Riseholme COCO, `--profile h100`, imgsz 1280 | mask mAP50 ~0.73 | `infer_311.sh` (26 Sep): 311 tiles. Riseholme head saw 0 Sireț3 plant masks. |
+   | `waste.pt` | YOLO12m detect | DroneWaste, 60 epochs, imgsz 1280 | box mAP50 0.394 | same script, `--conf 0.4` → 60 boxes / 39 tiles |
+   | `vineyard_marcaj.pt` (local, not the release) | YOLO11m-seg from `yolo11m-seg.pt` | 40 epochs, imgsz 640, batch 24, 12 tiles (10 Marcaj + 2 official examples) | mask mAP50 0.82 | chip infer 640 / stride 320 → 22,556 raw plants on 311 tiles |
+
+   Wall time we measured: waste train 60 epochs on one H100; canopy + waste `infer_311.sh` finished 26 Sep ~01:05; Marcaj plant fine-tune 40 epochs + 311-tile chip infer the same afternoon. Stitch / both walks / web-layers run on a Mac (M-series), about 3 minutes for the two closed walks on the slim inter-row graph.
+
+   To retrain the public-data pair:
 
    ```bash
    python models/train_yolo.py --task segment --data models/configs/vineyard.yaml --profile h100
@@ -115,7 +123,7 @@ Opens [http://127.0.0.1:43173](http://127.0.0.1:43173). Sample layers are synthe
    python models/infer_yolo.py --weights models/weights/vineyard.pt --tiles data/tiles --out data/predictions
    ```
 
-3. **Stitch IDs and write CVAT 1.1 ZIPs** (311 original GeoTIFF names, ≤ 90 MB each, import **once** before publish).
+3. **Stitch IDs and write CVAT 1.1 ZIPs** (311 original GeoTIFF names, ≤ 90 MB each). Ready pack for re-upload: `data/cvat_zips_marcaj/` (five parts).
 
    ```bash
    siret3 inventory data/tiles --out data/tile_index.csv
@@ -123,9 +131,14 @@ Opens [http://127.0.0.1:43173](http://127.0.0.1:43173). Sample layers are synthe
    siret3 cvat-export data/tiles --out team_upload.zip
    ```
 
-   Dry-run three tiles before the full zip. Then publish in Marcaj.
+4. **Marcaj (human — this is the scored 50%).** Upload the five ZIPs, confirm 311 files, publish. Then on **every** job:
 
-4. **Measurements + route** from the Marcaj export (planar EPSG:32635, no DEM). Keep human plants and rows — do not run `stitch` on the export.
+   - Vineyard tiles: one polygon per plant; one `row` through gaps; `interrow_area` between rows with `interrow_cover` (`bare_soil` / `vegetation` / `mixed` / `unassessable`). Same `vineyard_id` / `row_id` across tile edges.
+   - Empty / orchard / pasture / village / tilled field with **no vine grid**: **No objects in this frame**.
+   - **Submit** every job. Saved ≠ submitted. Only submitted jobs are scored.
+   - Do not draw grass or bare fields as inter-row. Cover is an attribute on an inter-row that already sits between two vine rows.
+
+5. **Measurements + both walks** from a **finished** Marcaj export (planar EPSG:32635, no DEM). Keep human plants and rows — do not run `stitch` on the export. Job-prefixed names (`1713_siret3_r017_c008.tif`) are stripped to the official tile name.
 
    ```bash
    siret3 marcaj-import data/marcaj_export --tiles data/tiles --out data/marcaj_32635.geojson
@@ -141,9 +154,11 @@ Opens [http://127.0.0.1:43173](http://127.0.0.1:43173). Sample layers are synthe
      --out-dir web/public/layers
    ```
 
-   `marcaj-import` accepts a CVAT ZIP, `annotations.xml`, json_simple, or a folder of those. Start must snap within 5 m. Both walks use inter-row + authorised passages only. Inspector = 25% file. Farmer = waste collect.
+   `marcaj-import` accepts a CVAT ZIP, `annotations.xml`, json_simple, or a folder of those. Start must snap within 5 m. Both walks use inter-row ∪ authorised passages − forbidden. Inspector = 25% file. Farmer = waste collect.
 
-5. **Web UI.** [http://127.0.0.1:43173](http://127.0.0.1:43173). Inspector (blue) and farmer (red) with each `length_m`. Badge reads SAMPLE until `layers.geojson` contains Marcaj canopies.
+   Last human dump (`data/marcaj_export/marcaj_cvat_2026-09-26.zip`) is **10 tiles / 951 shapes / 0 waste**. Import works (`data/marcaj_32635.geojson`). That graph does not reach the official start (155 m), so root `route.geojson` / `route_farmer.geojson` / `web/public/layers/` stay on the 311-tile stitch until you export after **all jobs are submitted**.
+
+6. **Web UI.** [https://dementra.md](https://dementra.md) (also [http://127.0.0.1:43173](http://127.0.0.1:43173)). Inspector (blue, 7.99 km) and farmer (red, 4.29 km), canopy 1.2239 ha, inter-row 7.0928 ha, 36,943 m of rows. Badge reads **MARCAJ**.
 
 ## Sireț3 imagery
 
@@ -176,4 +191,8 @@ AGRIDS YOLO zip and the Kaggle Riseholme mirror are **NC / ND**. Do not use them
 
 ## Status
 
-Official pack is on disk under `data/challenge/`. Tile ZIPs, the source orthomosaic, weights, and the scored Marcaj dump are not in git. Sample `route.geojson` and `measurements.csv` are still synthetic until the Marcaj export.
+- Path generator: `siret3 route` (inspector + farmer). Both files at repo root, EPSG:32635, closed at 629504.70, 5220250.75.
+- Web: [https://dementra.md](https://dementra.md). No paid APIs.
+- Weights: tracked `vineyard.pt` / `waste.pt` + [v0.1.0 release](https://github.com/CristianProdius/bei50/releases/tag/v0.1.0).
+- Hardware: NVIDIA H100 80 GB for train/infer; Mac for GIS, walks, and the Next.js map.
+- Still human: correct and **submit every Marcaj job**, then re-run step 5 on a full export. Tile ZIPs and the source ortho stay gitignored.

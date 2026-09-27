@@ -87,6 +87,24 @@ def test_projected_from_cvat_keeps_human_rows_and_ids(tmp_path: Path):
     assert max(ys) == pytest.approx(NORTH - 40 * GSD)
 
 
+def test_projected_from_cvat_strips_marcaj_job_prefix(tmp_path: Path):
+    tiles = tmp_path / "tiles"
+    tiles.mkdir()
+    _write_tile(tiles / "siret3_r017_c008.tif")
+    xml = """<?xml version="1.0" encoding="utf-8"?>
+<annotations>
+  <image id="0" name="1713_siret3_r017_c008.tif" width="64" height="64">
+    <polygon label="vineyard" points="10.0,20.0;14.0,20.0;14.0,24.0;10.0,24.0">
+      <attribute name="vineyard_id">V01</attribute>
+    </polygon>
+  </image>
+</annotations>
+"""
+    items = projected_from_cvat(parse_cvat11(xml), tiles)
+    assert len(items) == 1
+    assert items[0].tile == "siret3_r017_c008.tif"
+
+
 def test_does_not_invent_rows_when_export_has_plants_only(tmp_path: Path):
     tiles = tmp_path / "tiles"
     tiles.mkdir()

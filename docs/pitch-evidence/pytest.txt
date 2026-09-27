@@ -1,0 +1,20 @@
+........................................................................ [ 92%]
+......                                                                   [100%]
+=============================== warnings summary ===============================
+tests/test_derive.py::test_rows_from_elongated_canopy_uses_major_axis
+  /Users/cristian/Development/gigahack2026/bei50/processing/.venv/lib/python3.14/site-packages/shapely/constructive.py:1353: RuntimeWarning: divide by zero encountered in oriented_envelope
+    return lib.oriented_envelope(geometry, **kwargs)
+
+tests/test_derive.py::test_rows_from_elongated_canopy_uses_major_axis
+  /Users/cristian/Development/gigahack2026/bei50/processing/.venv/lib/python3.14/site-packages/shapely/constructive.py:1353: RuntimeWarning: invalid value encountered in oriented_envelope
+    return lib.oriented_envelope(geometry, **kwargs)
+
+tests/test_marcaj_import.py::test_projected_from_cvat_keeps_human_rows_and_ids
+tests/test_marcaj_import.py::test_projected_from_cvat_strips_marcaj_job_prefix
+tests/test_marcaj_import.py::test_does_not_invent_rows_when_export_has_plants_only
+tests/test_marcaj_import.py::test_dump_waste_is_polygon_not_linestring
+  /Users/cristian/Development/gigahack2026/bei50/processing/.venv/lib/python3.14/site-packages/rasterio/transform.py:178: PendingDeprecationWarning: Use `@` matmul instead of `*` mul operator for matrix multiplication
+    return Affine.translation(west, north) * Affine.scale(xsize, -ysize)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+78 passed, 6 warnings in 5.38s
