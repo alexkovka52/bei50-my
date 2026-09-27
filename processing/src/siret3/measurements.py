@@ -110,7 +110,7 @@ def summary_rows(items: list[ProjectedPoly]) -> list[dict]:
 
 
 def write_csv(items: list[ProjectedPoly], out_csv: Path) -> None:
-    rows = [measure(item) for item in items] + summary_rows(items)
+    rows = summary_rows(items) + [measure(item) for item in items]
     out_csv = Path(out_csv)
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [

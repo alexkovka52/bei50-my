@@ -46,3 +46,31 @@ def test_summary_row_count_and_length():
     rows = {r["kind"]: r for r in summary_rows([r1, r2, r3])}
     assert int(rows["n_rows"]["n_parts"]) == 2
     assert float(rows["total_row_length"]["length_m"]) == 28.0
+
+
+def test_write_csv_puts_scorecard_summaries_first(tmp_path):
+    import csv
+    out = tmp_path / "measurements.csv"
+    write_csv(
+        [
+            _sq(0, 0, 10, 10),
+            ProjectedPoly(
+                kind="row",
+                vineyard_id="V01",
+                row_id="V01-R01",
+                coords=[(0, 0), (10, 0)],
+                tile="t1.tif",
+            ),
+        ],
+        out,
+    )
+    kinds = [row["kind"] for row in csv.DictReader(out.open())]
+    assert kinds[:5] == [
+        "n_blocks",
+        "n_rows",
+        "canopy_union",
+        "interrow_union",
+        "total_row_length",
+    ]
+    assert "vineyard" in kinds
+    assert "row" in kinds
