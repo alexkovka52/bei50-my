@@ -35,3 +35,6 @@ under `web/src` and `web/README.md` for this task. Do NOT edit `web/package.json
    <duration>." when the counts are null. Same rule for any walk copy on `/walks` and `/map`.
 10. Top bar at ≤700px: the search is fixed `w-[300px]` and clips beside the rail at 390px; make it
     `w-full max-w-[300px] min-w-0` (or collapse to an icon button that opens a search field) on small screens.
+11. Waste is now published as Point features (centroid, with a `bbox` property), so the shared `waste-circle`
+    layer draws it on every map. Remove the `/map` workspace's extra `workspace-waste-points` source/layer and
+    toggle the shared layer instead (no duplicate markers).

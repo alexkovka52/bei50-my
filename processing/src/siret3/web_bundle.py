@@ -827,7 +827,13 @@ def _layer_gaps(gaps: list[dict]) -> list[dict]:
 def _layer_waste(wastes: list[dict]) -> list[dict]:
     features = []
     for waste in wastes:
-        feat = _feature({"id": waste["id"], "block": waste["block"]}, _project(waste["_geom"]))
+        # Points (centroids) so every map's circle layer draws them; the box stays as a property.
+        geom = waste["_geom"]
+        box_ll = _project(geom)
+        props = {"id": waste["id"], "block": waste["block"]}
+        if box_ll is not None and hasattr(box_ll, "bounds"):
+            props["bbox"] = [round(v, 7) for v in box_ll.bounds]
+        feat = _feature(props, _project(geom.centroid))
         if feat:
             features.append(feat)
     return features
