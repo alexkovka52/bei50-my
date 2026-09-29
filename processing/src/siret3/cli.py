@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from . import EXPECTED_TILE_COUNT, START_TOLERANCE_M, WORK_CRS
@@ -255,6 +256,88 @@ def _cmd_eval(args: argparse.Namespace) -> int:
     return 0
 
 
+def _repo_file(*parts: str) -> Path | None:
+    for base in (Path(), Path(__file__).resolve().parents[3]):
+        path = base.joinpath(*parts)
+        if path.is_file():
+            return path
+    return None
+
+
+def _read_json(path: Path) -> dict:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def _passages_work_geom(fc: dict | None):
+    """Official passages are EPSG:32635. Reproject if a caller passes WGS84."""
+    if not fc or not fc.get("features"):
+        return None
+    from shapely.geometry import shape
+    from shapely.ops import transform, unary_union
+
+    from .crs import transformer
+
+    geoms = [shape(f["geometry"]).buffer(0) for f in fc["features"] if f.get("geometry")]
+    if not geoms:
+        return None
+    geom = unary_union(geoms)
+    x, y = geom.centroid.x, geom.centroid.y
+    if abs(x) <= 180.0 and abs(y) <= 90.0:
+        back = transformer("EPSG:4326", "EPSG:32635")
+        geom = transform(lambda a, b, z=None: back.transform(a, b), geom)
+    return geom
+
+
+def _cmd_web_bundle(args: argparse.Namespace) -> int:
+    from .assemble import assemble
+    from .web_bundle import build_bundle, write_bundle, write_pmtiles
+
+    items = _load_projected(Path(args.layers))
+    passages_path = Path(args.passages) if args.passages else _repo_file("data", "challenge", "02_route", "passages.geojson")
+    forbidden_path = Path(args.forbidden) if args.forbidden else _repo_file("data", "challenge", "02_route", "forbidden.geojson")
+    passages = _read_json(passages_path) if passages_path and Path(passages_path).is_file() else None
+    forbidden = _read_json(forbidden_path) if forbidden_path and Path(forbidden_path).is_file() else None
+    if args.assemble:
+        items = assemble(items, passages=_passages_work_geom(passages))
+    routes = {}
+    if args.inspector:
+        routes["inspector"] = _read_json(Path(args.inspector))
+    if args.farmer:
+        routes["farmer"] = _read_json(Path(args.farmer))
+    baseline = _read_json(Path(args.baseline)) if args.baseline else None
+    now_eval = _read_json(Path(args.now)) if args.now else None
+    study_path = _repo_file("data", "challenge", "02_route", "study_area.geojson")
+    split_path = _repo_file("data", "splits", "siret3_split.json")
+    bundle = build_bundle(
+        items,
+        routes=routes,
+        passages=passages,
+        forbidden=forbidden,
+        baseline=baseline,
+        now=now_eval,
+        source=args.source,
+        flown_on=args.flown_on,
+        study_area=_read_json(study_path) if study_path else None,
+        split=_read_json(split_path) if split_path else None,
+    )
+    write_bundle(bundle, Path(args.out_dir))
+    pm_status, pm_detail = write_pmtiles(Path(args.out_dir))
+    summary = bundle["summary.json"]
+    counts = summary["counts"]
+    note = ""
+    if pm_status == "skipped":
+        note = " (tippecanoe not on PATH, skipped layers.pmtiles)"
+    elif pm_status == "failed":
+        note = " (tippecanoe failed, skipped layers.pmtiles)"
+        if pm_detail:
+            print(pm_detail, file=sys.stderr)
+    print(
+        f"{counts['blocks']} blocks, {counts['plants']} plants, {counts['waste']} waste, "
+        f"{counts['gaps']} gaps, {summary['row_km']} km of rows -> {args.out_dir}{note}"
+    )
+    return 0
+
+
 def _cmd_web_layers(args: argparse.Namespace) -> int:
     written = write_web_layers(
         layers=Path(args.layers) if args.layers else None,
@@ -435,6 +518,20 @@ def main(argv: list[str] | None = None) -> int:
     ev.add_argument("--min-score", type=float, default=0.0)
     ev.add_argument("--out")
     ev.set_defaults(func=_cmd_eval)
+
+    wb = sub.add_parser("web-bundle", help="Write the Dementra frontend data contract (WGS84 JSON)")
+    wb.add_argument("--layers", required=True, help="EPSG:32635 FeatureCollection")
+    wb.add_argument("--assemble", action="store_true", help="Recompute block and row ids before export")
+    wb.add_argument("--inspector", default=None, help="Inspector route GeoJSON")
+    wb.add_argument("--farmer", default=None, help="Farmer route GeoJSON")
+    wb.add_argument("--passages", default=None, help="Defaults to data/challenge/02_route/passages.geojson")
+    wb.add_argument("--forbidden", default=None, help="Defaults to data/challenge/02_route/forbidden.geojson")
+    wb.add_argument("--baseline", default=None, help="siret3 eval --out JSON (before)")
+    wb.add_argument("--now", default=None, help="siret3 eval --out JSON (now)")
+    wb.add_argument("--source", default="marcaj-labels", choices=["marcaj-labels", "model"])
+    wb.add_argument("--flown-on", default="2026-09-20")
+    wb.add_argument("--out-dir", default="web/public/data")
+    wb.set_defaults(func=_cmd_web_bundle)
 
     wl = sub.add_parser("web-layers", help="Reproject 32635 layers to WGS84 for MapLibre")
     wl.add_argument("--layers", default=None, help="Marcaj 32635 FeatureCollection")
