@@ -485,7 +485,7 @@ def write_route_geojson(
                     "start_x": float(start_xy[0]),
                     "start_y": float(start_xy[1]),
                     "role": role,
-                    **({f"targets_{k}": v for k, v in targets.items()} if targets else {}),
+                    **({("targets_total" if k == "targets" else f"targets_{k}"): v for k, v in targets.items()} if targets else {}),
                 },
                 "geometry": {
                     "type": "LineString",
