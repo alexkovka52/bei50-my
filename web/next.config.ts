@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   // Keep discovery inside this app when the machine has other npm projects.
   turbopack: { root: __dirname },
   outputFileTracingRoot: __dirname,
+  // Imagery comes from pre-built tiles; skipping the optimizer keeps sharp/libvips out of the request path.
+  images: { unoptimized: true },
 };
 
 export default nextConfig;
