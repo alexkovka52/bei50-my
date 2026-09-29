@@ -25,6 +25,19 @@ function latLon(point: Coordinate): string | null {
   return `lat="${lat.toFixed(7)}" lon="${lon.toFixed(7)}"`;
 }
 
+/** File name for a walk. A block filter is named, but the track inside is still the whole walk. */
+export function gpxFileName(walk: "inspector" | "farmer", block: string | null): string {
+  const id = block?.trim();
+  return id ? `${walk}-walk-${id}.gpx` : `${walk}-walk.gpx`;
+}
+
+/** Shown when a block filter would otherwise look like a clipped track. */
+export function wholeWalkTrackNote(block: string | null): string | null {
+  const id = block?.trim();
+  if (!id) return null;
+  return `The track is the whole walk. Stops in the file are for block ${id}.`;
+}
+
 /** GPX 1.1: the walk is one track, and each field task is a waypoint. */
 export function buildGpx(options: { name: string; coordinates: readonly Coordinate[]; waypoints: readonly GpxWaypoint[] }): string {
   const name = escapeXml(options.name);

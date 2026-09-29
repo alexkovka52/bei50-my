@@ -72,7 +72,7 @@ export function formatMetricValue(value: string | null, column: "before" | "now"
 export function datasetStats(dataset: DatasetCounts): { value: string; label: string }[] {
   return [
     { value: formatCount(dataset.plants), label: "plant outlines" },
-    { value: formatCount(dataset.rows), label: "row lines" },
+    { value: formatCount(dataset.rows), label: "row pieces" },
     { value: formatCount(dataset.interrows), label: "inter-row areas" },
     { value: formatCount(dataset.waste), label: "waste items" },
   ];

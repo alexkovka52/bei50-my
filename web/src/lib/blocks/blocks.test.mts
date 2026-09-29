@@ -7,6 +7,8 @@ import {
   blocksHeadingCount,
   blocksToCsv,
   coverParts,
+  blocksWithRowDisruption,
+  disruptedRowShare,
   filterBlocks,
   findBlock,
   formatDisrupted,
@@ -129,7 +131,7 @@ test("blocksToCsv exports every block with a header and empty cells for nulls", 
   assert.equal(
     csv,
     [
-      "Block,Rows,Row length (km),Plants,Disrupted rows,Gaps,Waste,Inter-row (ha)",
+      "Block,Rows,Row length (km),Plants,Disrupted rows (%),Gaps,Waste,Inter-row (ha)",
       "V01,138,4.71,2239,36,100,0,1.15",
       "V07,37,1.74,632,,33,0,0.31",
       '"V""1, east",2,1.2,3,8,4,5,0.5',
@@ -178,6 +180,22 @@ test("formatters render row length, gaps and disruption", () => {
   assert.equal(structureLabel("unassessable"), "Unassessable");
 });
 
+test("disruptedRowShare uses aggregated rows and ignores unset structure", () => {
+  const rows: VineyardRow[] = [
+    { id: "a", block: "V01", row: 1, length_m: 10, structure: "disrupted", pieces: 4 },
+    { id: "b", block: "V01", row: 2, length_m: 10, structure: "regular", pieces: 1 },
+    { id: "c", block: "V01", row: 3, length_m: 10, structure: null, pieces: 2 },
+    { id: "d", block: "V01", row: 4, length_m: 10, structure: "unassessable", pieces: 1 },
+    { id: "e", block: "V02", row: 1, length_m: 10, structure: "disrupted", pieces: 1 },
+  ];
+  assert.equal(disruptedRowShare(rows, "V01"), 50);
+  assert.equal(disruptedRowShare(rows, "V02"), 100);
+  assert.equal(disruptedRowShare(rows, "V03"), null);
+  assert.equal(disruptedRowShare(rows), 67);
+  assert.equal(blocksWithRowDisruption([block({ id: "V01", disrupted_pct: 36 }), block({ id: "V09", disrupted_pct: 4 })], rows)[0]?.disrupted_pct, 50);
+  assert.equal(blocksWithRowDisruption([block({ id: "V09", disrupted_pct: 4 })], rows)[0]?.disrupted_pct, null);
+});
+
 test("rowsForBlock returns one block in row order", () => {
   const rows: VineyardRow[] = [
     { id: "V03-R010", block: "V03", row: 10, length_m: 20, structure: "disrupted", pieces: 1 },
@@ -197,8 +215,14 @@ test("published blocks sort longest first and export all thirty", () => {
   const file = JSON.parse(readFileSync(fileURLToPath(new URL("../../../public/data/blocks.json", import.meta.url)), "utf8")) as {
     blocks: Block[];
   };
+  const publishedRows = JSON.parse(readFileSync(fileURLToPath(new URL("../../../public/data/rows.json", import.meta.url)), "utf8")) as {
+    rows: VineyardRow[];
+  };
+  assert.equal(disruptedRowShare(publishedRows.rows), 40);
+  assert.equal(disruptedRowShare(publishedRows.rows, "V01"), 47);
+  const ranked = blocksWithRowDisruption(file.blocks, publishedRows.rows);
   assert.equal(file.blocks.length, 30);
-  const sorted = sortBlocks(file.blocks, "row_km", "desc");
+  const sorted = sortBlocks(ranked, "row_km", "desc");
   assert.equal(sorted[0]?.id, "V01");
   assert.ok((sorted[0]?.row_km ?? 0) >= (sorted[1]?.row_km ?? 0));
   const lines = blocksToCsv(sorted).trimEnd().split("\n");

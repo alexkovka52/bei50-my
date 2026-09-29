@@ -6,7 +6,6 @@ import { TopBar } from "@/components/shell/TopBar";
 import { getBlock, getSummary, getTasks } from "@/lib/data/server";
 import { createRoutePath } from "@/lib/route-path";
 import { loadWalkRoute } from "@/lib/walks/load-route";
-import { withRouteDistance } from "@/lib/walks/position";
 import { parseBlockParam, parseWalkParam } from "@/lib/walks/tasks";
 
 export const metadata: Metadata = {
@@ -22,14 +21,15 @@ export default async function WalksPage({
   const params = await searchParams;
   const walk = parseWalkParam(params.walk);
   const block = parseBlockParam(params.block);
-  const [summary, tasks, route, blockRecord] = await Promise.all([
+  const [summary, tasks, inspector, farmer, blockRecord] = await Promise.all([
     getSummary(),
     getTasks(),
-    loadWalkRoute(walk),
+    loadWalkRoute("inspector"),
+    loadWalkRoute("farmer"),
     block ? getBlock(block) : Promise.resolve(null),
   ]);
 
-  if (!summary || !tasks || !route) {
+  if (!summary || !tasks || !inspector || !farmer) {
     return (
       <AppShell>
         <TopBar title="Walks" />
@@ -40,21 +40,32 @@ export default async function WalksPage({
     );
   }
 
-  const path = createRoutePath(route.coordinates, route.lengthM);
+  const inspectorPath = createRoutePath(inspector.coordinates, inspector.lengthM);
+  const farmerPath = createRoutePath(farmer.coordinates, farmer.lengthM);
   return (
     <WalkStudio
-      key={`${walk}:${block ?? ""}`}
-      walk={walk}
-      block={block}
+      initialWalk={walk}
+      initialBlock={block}
       blockBBox={blockRecord?.bbox ?? null}
       start={summary.start}
       center={summary.center}
-      stops={summary.walks[walk].stops}
-      targetsVisited={route.targetsVisited}
-      targetsTotal={route.targetsTotal}
-      tasks={withRouteDistance(path, tasks)}
-      coordinates={route.coordinates}
-      lengthM={path.lengthM}
+      tasks={tasks}
+      walks={{
+        inspector: {
+          coordinates: inspector.coordinates,
+          lengthM: inspectorPath.lengthM,
+          stops: summary.walks.inspector.stops,
+          targetsVisited: inspector.targetsVisited,
+          targetsTotal: inspector.targetsTotal,
+        },
+        farmer: {
+          coordinates: farmer.coordinates,
+          lengthM: farmerPath.lengthM,
+          stops: summary.walks.farmer.stops,
+          targetsVisited: farmer.targetsVisited,
+          targetsTotal: farmer.targetsTotal,
+        },
+      }}
     />
   );
 }

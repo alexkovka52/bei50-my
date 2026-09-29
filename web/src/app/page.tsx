@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   description: "Planting gaps, waste and the inspector walk for the latest Sireț3 flight.",
 };
 
+/** A successful forecast stays with the page for 30 minutes. A failed forecast calls noStore() and is not kept. */
 export const revalidate = 1800;
 
 export default async function OverviewPage() {
@@ -52,7 +53,7 @@ export default async function OverviewPage() {
             headline={statusHeadline(summary)}
             detail={statusDetail(summary, inspector ? { visited: inspector.targetsVisited, total: inspector.targetsTotal } : null)}
           />
-          <NumbersStrip stats={numberStats(summary)} />
+          <NumbersStrip stats={numberStats(summary, rows)} />
           <div className="grid grid-cols-1 items-stretch gap-[22px] min-[701px]:grid-cols-2">
             <WeatherCard forecast={weather} />
             <CoverCard cover={summary.cover} />

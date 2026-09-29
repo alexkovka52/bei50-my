@@ -2,7 +2,7 @@
 
 import { LocateFixed, Pause, Play } from "lucide-react";
 import { formatWalkKm, timeLeftLabel } from "@/lib/walks/format";
-import { PLAYBACK_SPEEDS, playbackFraction, remainingMetres, type PlaybackSpeed } from "@/lib/walks/playback";
+import { PLAYBACK_SPEEDS, playbackFraction, playbackToggleLabel, remainingMetres, type PlaybackSpeed } from "@/lib/walks/playback";
 import { cn } from "@/lib/utils";
 import { GlassPanel } from "@/components/ui/GlassPanel";
 import { ProgressSlider } from "./ProgressSlider";
@@ -29,7 +29,6 @@ export function PlaybackBar({
   onFollow: (follow: boolean) => void;
 }) {
   const fraction = playbackFraction(distanceM, lengthM);
-  const atEnd = lengthM > 0 && distanceM >= lengthM - 0.05;
   const valueText = `${formatWalkKm(distanceM, false)} of ${formatWalkKm(lengthM)}`;
   return (
     <GlassPanel className="flex flex-wrap items-center gap-x-[18px] gap-y-3">
@@ -37,7 +36,7 @@ export function PlaybackBar({
         type="button"
         onClick={onToggle}
         disabled={lengthM <= 0}
-        aria-label={playing ? "Pause playback" : atEnd ? "Replay playback" : "Play playback"}
+        aria-label={playbackToggleLabel(playing, distanceM, lengthM)}
         className="inline-flex size-12 shrink-0 items-center justify-center rounded-full border-0 bg-budbreak text-forest disabled:opacity-50"
       >
         {playing ? (

@@ -68,5 +68,11 @@ export function useWalkPlayback(lengthM: number) {
     setSpeedState(next);
   }, []);
 
-  return { distanceM, playing, speed, follow, setFollow, seek, toggle, setSpeed };
+  const reset = useCallback(() => {
+    distanceRef.current = 0;
+    setDistanceM(0);
+    setPlaying(false);
+  }, []);
+
+  return { distanceM, playing, speed, follow, setFollow, seek, toggle, setSpeed, reset };
 }

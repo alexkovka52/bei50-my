@@ -37,15 +37,14 @@ function ariaSort(sort: BlockSort, key: BlockSortKey): "ascending" | "descending
 }
 
 function downloadCsv(csv: string) {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   const link = document.createElement("a");
   link.href = url;
   link.download = "dementra-blocks.csv";
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export function BlocksWorkspace({ blocks, initialSelected }: { blocks: Block[]; initialSelected: string | null }) {
@@ -148,26 +147,22 @@ export function BlocksWorkspace({ blocks, initialSelected }: { blocks: Block[]; 
                 {visible.map((block) => {
                   const isSelected = block.id === selectedId;
                   return (
-                    <tr
-                      key={block.id}
-                      tabIndex={0}
-                      aria-selected={isSelected}
-                      onClick={() => select(block.id)}
-                      onKeyDown={(event) => {
-                        if (event.key !== "Enter" && event.key !== " ") return;
-                        event.preventDefault();
-                        select(block.id);
-                      }}
-                      className={cn("cursor-pointer border-t border-line", isSelected && "bg-dew")}
-                    >
+                    <tr key={block.id} className={cn("border-t border-line", isSelected && "bg-dew")}>
                       <th
                         scope="row"
                         className={cn(
-                          "px-4 py-[13px] text-left font-semibold",
+                          "h-px p-0 text-left font-semibold",
                           isSelected && "font-bold shadow-[inset_3px_0_0_#375534]",
                         )}
                       >
-                        {block.id}
+                        <button
+                          type="button"
+                          aria-pressed={isSelected}
+                          onClick={() => select(block.id)}
+                          className="flex h-full min-h-11 w-full cursor-pointer items-center bg-transparent px-4 py-[13px] text-left font-semibold text-forest focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-moss"
+                        >
+                          {block.id}
+                        </button>
                       </th>
                       <td className="px-3 py-[13px] text-right tabular-nums">{formatInt(block.rows)}</td>
                       <td className="px-3 py-[13px] text-right whitespace-nowrap tabular-nums">{formatRowKm(block.row_km)}</td>

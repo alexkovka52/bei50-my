@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import AxeBuilder from "@axe-core/playwright";
-import { test as base, expect, type ConsoleMessage, type Page, type TestInfo } from "@playwright/test";
+import { test as base, expect, type ConsoleMessage, type Page } from "@playwright/test";
 
 /** Local ortho pyramid. TILES_DEV_ORIGIN only rewrites in `next dev`, so tests serve these files themselves. */
 const TILE_ROOT = "/Users/cristian/Development/gigahack2026/bei50/dist/tiles/ortho";
@@ -155,7 +155,4 @@ export async function settleMaps(page: Page) {
   await canvas.waitFor({ state: "visible", timeout: 20_000 });
 }
 
-/** Phone walk column (tabs, task list, GPX, playback bar) is specified only from 481px up. */
-export function skipOnPhone(testInfo: TestInfo, reason: string) {
-  test.skip(testInfo.project.name === "mobile", reason);
-}
+

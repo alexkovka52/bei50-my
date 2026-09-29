@@ -22,6 +22,12 @@ export function playbackFraction(distanceM: number, lengthM: number): number {
   return Math.max(0, Math.min(1, distanceM / lengthM));
 }
 
+export function playbackToggleLabel(playing: boolean, distanceM: number, lengthM: number): string {
+  if (playing) return "Pause playback";
+  if (lengthM > 0 && distanceM >= lengthM - 0.05) return "Replay playback";
+  return "Play playback";
+}
+
 export function remainingMetres(lengthM: number, distanceM: number): number {
   if (!Number.isFinite(lengthM) || lengthM <= 0) return 0;
   const travelled = Number.isFinite(distanceM) ? Math.max(0, Math.min(lengthM, distanceM)) : 0;
