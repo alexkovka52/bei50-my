@@ -66,6 +66,40 @@
     outline-offset: 2px;
   }
 
+  .bg-forest :focus-visible,
+  .bg-forest:focus-visible,
+  .map-workspace :focus-visible {
+    outline-color: var(--color-budbreak);
+  }
+
+  .maplibregl-ctrl-attrib.maplibregl-compact {
+    background-color: var(--color-paper) !important;
+    color: var(--color-forest) !important;
+    border: 1px solid rgba(15, 42, 29, 0.22);
+  }
+
+  .maplibregl-ctrl-attrib.maplibregl-compact a {
+    color: var(--color-forest) !important;
+  }
+
+  .maplibregl-ctrl-attrib.maplibregl-compact-show {
+    max-width: min(280px, calc(100% - 16px));
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+
+  .maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-inner {
+    line-height: 1.35;
+    white-space: normal;
+  }
+
+  .maplibregl-ctrl-attrib-button:focus-visible {
+    outline: 2px solid var(--color-moss);
+    outline-offset: 2px;
+  }
+
   code,
   kbd,
   samp {

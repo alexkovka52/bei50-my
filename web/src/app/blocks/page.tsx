@@ -4,7 +4,10 @@ import { AppShell } from "@/components/shell/AppShell";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { getBlocks } from "@/lib/data/server";
 
-export const metadata: Metadata = { title: "Blocks" };
+export const metadata: Metadata = {
+  title: "Blocks",
+  description: "Every vineyard block ranked by row length, with gaps, waste and cover.",
+};
 
 type BlocksPageProps = {
   searchParams: Promise<{ selected?: string | string[] }>;

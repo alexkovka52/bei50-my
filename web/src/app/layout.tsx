@@ -27,6 +27,8 @@ export const metadata: Metadata = {
   },
   description: "Aerial vineyard intelligence: every row, every gap, every walk.",
   applicationName: "Dementra",
+  metadataBase: new URL("https://dementra.md"),
+  robots: { index: true, follow: true },
   manifest: asset("/site.webmanifest"),
 };
 
@@ -41,7 +43,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${bricolage.variable} ${onest.variable}`} style={MOTION_VARS as CSSProperties}>
-      <body className="min-h-dvh bg-dew font-sans text-forest antialiased">{children}</body>
+      <body className="min-h-dvh bg-dew font-sans text-forest antialiased">
+        <a
+          href="#main"
+          className="absolute top-3 left-3 z-[80] -translate-y-24 rounded-pill bg-paper px-4 py-2.5 font-semibold text-forest focus:translate-y-0"
+        >
+          Skip to main content
+        </a>
+        {children}
+      </body>
     </html>
   );
 }

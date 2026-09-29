@@ -38,7 +38,7 @@ export function WalkTabs({ walk, block }: { walk: WalkRole; block: string | null
             href={walkHref(role, block)}
             role="tab"
             aria-selected={selected}
-            aria-controls="walk-panel"
+            aria-controls="main"
             tabIndex={selected ? 0 : -1}
             scroll={false}
             className={cn(

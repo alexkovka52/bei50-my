@@ -55,7 +55,9 @@ function summary(overrides: Partial<Summary> = {}): Summary {
 test("status copy uses the survey counts and the inspector walk", () => {
   const data = summary();
   assert.equal(statusHeadline(data), "1,091 planting gaps and 83 waste items are waiting across 30 blocks.");
-  assert.equal(statusDetail(data), "One inspector walk visits all of them: 7.99 km, about 2 h.");
+  assert.equal(statusDetail(data), "The inspector walk covers 7.99 km, about 2 h.");
+  assert.equal(statusDetail(data, { visited: 40, total: 83 }), "One inspector walk visits 40 of them: 7.99 km, about 2 h.");
+  assert.equal(statusDetail(data, { visited: 83, total: 83 }), "One inspector walk visits all of them: 7.99 km, about 2 h.");
   assert.equal(formatWalkKm(7991.683), "7.99 km");
   assert.equal(formatWalkKm(-1), "Not measured");
 });
@@ -66,7 +68,11 @@ test("status copy pluralises a single gap, item, block and stop", () => {
     walks: { inspector: { length_m: 2000, stops: 1 }, farmer: { length_m: 0, stops: 0 } },
   });
   assert.equal(statusHeadline(data), "1 planting gap and 1 waste item are waiting across 1 block.");
-  assert.equal(statusDetail(data), "One inspector walk visits all of them: 2.00 km, about 30 min, 1 stop.");
+  assert.equal(statusDetail(data), "The inspector walk covers 2.00 km, about 30 min, 1 stop.");
+  assert.equal(
+    statusDetail(data, { visited: 1, total: 4 }),
+    "One inspector walk visits 1 of them: 2.00 km, about 30 min, 1 stop.",
+  );
 });
 
 test("the number strip is rows, plants, inter-row ground and disrupted rows", () => {

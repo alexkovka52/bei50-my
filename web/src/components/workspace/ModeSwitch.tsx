@@ -16,9 +16,15 @@ const options = [
 
 export function ModeSwitch({ value, onChange }: ModeSwitchProps) {
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+    const key = event.key;
+    if (key !== "ArrowRight" && key !== "ArrowLeft" && key !== "ArrowUp" && key !== "ArrowDown" && key !== "Home" && key !== "End") return;
     event.preventDefault();
-    onChange(value === "2d" ? "3d" : "2d");
+    const index = value === "3d" ? 1 : 0;
+    const forward = key === "ArrowRight" || key === "ArrowDown";
+    const nextIndex = key === "Home" ? 0 : key === "End" ? 1 : (index + (forward ? 1 : -1) + 2) % 2;
+    const next = nextIndex === 0 ? "2d" : "3d";
+    onChange(next);
+    event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]')[nextIndex]?.focus();
   }
 
   return (
@@ -36,6 +42,7 @@ export function ModeSwitch({ value, onChange }: ModeSwitchProps) {
             type="button"
             role="radio"
             aria-checked={selected}
+            tabIndex={selected ? 0 : -1}
             onClick={() => onChange(option.value)}
             className={cn(
               "inline-flex h-11 min-w-11 items-center justify-center rounded-pill px-3.5 text-sm min-[1025px]:px-4",

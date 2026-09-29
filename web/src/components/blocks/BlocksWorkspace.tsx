@@ -101,7 +101,7 @@ export function BlocksWorkspace({ blocks, initialSelected }: { blocks: Block[]; 
 
       <div className="grid min-w-0 items-start gap-[22px] min-[1201px]:grid-cols-[minmax(0,1fr)_380px]">
         <section className="min-w-0 overflow-hidden rounded-card bg-paper pt-2">
-          <div className="overflow-x-auto">
+          <div className="min-w-0 overflow-x-auto">
             <table className="w-full min-w-[880px] border-collapse text-sm">
               <caption className="sr-only">Vineyard blocks</caption>
               <thead>
@@ -118,7 +118,6 @@ export function BlocksWorkspace({ blocks, initialSelected }: { blocks: Block[]; 
                       >
                         <button
                           type="button"
-                          aria-sort={state}
                           aria-label={
                             active
                               ? `${column.label}, sorted ${sort.direction === "asc" ? "ascending" : "descending"}`
@@ -159,7 +158,7 @@ export function BlocksWorkspace({ blocks, initialSelected }: { blocks: Block[]; 
                         event.preventDefault();
                         select(block.id);
                       }}
-                      className={cn("cursor-pointer border-t border-line outline-none", isSelected && "bg-dew")}
+                      className={cn("cursor-pointer border-t border-line", isSelected && "bg-dew")}
                     >
                       <th
                         scope="row"
@@ -209,7 +208,7 @@ export function BlocksWorkspace({ blocks, initialSelected }: { blocks: Block[]; 
             aria-label={`Block ${selected.id}`}
             className="overflow-hidden rounded-card bg-paper min-[1201px]:sticky min-[1201px]:top-6"
           >
-            <BlockMap block={selected} preview className="h-[190px] w-full" />
+            <BlockMap block={selected} className="h-[190px] w-full" />
             <div className="px-[22px] py-5">
               <BlockFacts block={selected} level="h2" linkToPage />
             </div>

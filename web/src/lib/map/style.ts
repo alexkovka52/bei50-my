@@ -1,6 +1,7 @@
 import type { Map as MlMap, StyleSpecification } from "maplibre-gl";
 import { layerUrl } from "@/lib/data/client";
 import type { LayerName } from "@/lib/data/types";
+import { shouldLoadPlants } from "@/lib/map/plants";
 import {
   ATTRIBUTION,
   ESRI_TILES,
@@ -76,14 +77,45 @@ export const DEFAULT_VISIBLE: Record<LayerName, boolean> = {
   gaps: true,
 };
 
+const plantsWanted = new WeakMap<MlMap, boolean>();
+
+function mountPlants(map: MlMap): void {
+  if (!map.getSource("plants")) map.addSource("plants", { type: "geojson", data: layerUrl("plants"), promoteId: "id" });
+  if (map.getLayer("plants-fill")) return;
+  const before = map.getLayer("rows-line") ? "rows-line" : undefined;
+  map.addLayer(
+    {
+      id: "plants-fill",
+      type: "fill",
+      source: "plants",
+      minzoom: 16,
+      layout: { visibility: "visible" },
+      paint: { "fill-color": C.canopy, "fill-opacity": 0.55, "fill-outline-color": "#BFE3A3" },
+    },
+    before,
+  );
+}
+
+/** Fetch plants.geojson only once the canopy marks are useful, then keep the chosen visibility. */
+export function syncPlants(map: MlMap): void {
+  const wanted = plantsWanted.get(map) ?? false;
+  if (!shouldLoadPlants(map.getZoom(), wanted)) {
+    if (!wanted && map.getLayer("plants-fill")) map.setLayoutProperty("plants-fill", "visibility", "none");
+    return;
+  }
+  mountPlants(map);
+  if (map.getLayer("plants-fill")) map.setLayoutProperty("plants-fill", "visibility", "visible");
+}
+
 /**
  * Adds every data layer (GeoJSON from web/public/data/layers) in draw order.
- * Selection: call `setSelectedBlock(map, id)`; hover/click wiring belongs to the screen.
+ * The plants source waits until zoom 16. Selection: call `setSelectedBlock(map, id)`.
  */
 export function addDataLayers(map: MlMap, visible: Partial<Record<LayerName, boolean>> = {}): void {
   const vis = { ...DEFAULT_VISIBLE, ...visible };
+  plantsWanted.set(map, vis.plants);
   const v = (name: LayerName) => (vis[name] ? "visible" : "none") as "visible" | "none";
-  const names: LayerName[] = ["forbidden", "passages", "interrows", "blocks", "plants", "rows", "waste", "gaps"];
+  const names: LayerName[] = ["forbidden", "passages", "interrows", "blocks", "rows", "waste", "gaps"];
   for (const name of names) {
     if (!map.getSource(name)) map.addSource(name, { type: "geojson", data: layerUrl(name), promoteId: "id" });
   }
@@ -104,8 +136,6 @@ export function addDataLayers(map: MlMap, visible: Partial<Record<LayerName, boo
     paint: { "line-color": C.dew, "line-width": 1, "line-opacity": 0.45 } });
   map.addLayer({ id: "blocks-selected", type: "line", source: "blocks", layout: { visibility: v("blocks") },
     filter: ["==", ["get", "id"], ""], paint: { "line-color": C.budbreak, "line-width": 2.5 } });
-  map.addLayer({ id: "plants-fill", type: "fill", source: "plants", minzoom: 16, layout: { visibility: v("plants") },
-    paint: { "fill-color": C.canopy, "fill-opacity": 0.55, "fill-outline-color": "#BFE3A3" } });
   map.addLayer({ id: "rows-line", type: "line", source: "rows", layout: { visibility: v("rows"), "line-cap": "round" },
     paint: {
       "line-color": ["match", ["get", "structure"], "disrupted", C.gap, C.dew],
@@ -118,9 +148,16 @@ export function addDataLayers(map: MlMap, visible: Partial<Record<LayerName, boo
   map.addLayer({ id: "gaps-circle", type: "circle", source: "gaps", layout: { visibility: v("gaps") },
     paint: { "circle-color": C.gap, "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 1.5, 17, 2.5, 19, 5, 21, 8],
       "circle-stroke-color": C.forest, "circle-stroke-width": 1.5 } });
+  syncPlants(map);
+  map.on("zoomend", () => syncPlants(map));
 }
 
 export function setDataLayerVisible(map: MlMap, name: LayerName, on: boolean): void {
+  if (name === "plants") {
+    plantsWanted.set(map, on);
+    syncPlants(map);
+    return;
+  }
   for (const id of DATA_LAYER_IDS[name]) {
     if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
   }

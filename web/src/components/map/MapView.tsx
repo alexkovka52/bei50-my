@@ -5,6 +5,7 @@ import type { Map as MlMap } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 import { VIEW_2D, VIEW_3D, WORKER_URL } from "@/lib/map/config";
 import { addDataLayers, baseStyle } from "@/lib/map/style";
+import { motionDuration } from "@/lib/motion";
 import type { LayerName, LonLat } from "@/lib/data/types";
 
 export type MapViewProps = {
@@ -67,6 +68,7 @@ export function MapView({
         fadeDuration: reduce ? 0 : 300,
       });
       mapRef.current = map;
+      keepAttributionCollapsed(map);
       map.on("error", (e) => {
         if (String(e?.error?.message ?? "").includes("WebGL")) setFailed(true);
       });
@@ -89,16 +91,39 @@ export function MapView({
   if (failed) {
     return (
       <div role="img" aria-label={label} className={className}>
-        <p className="p-6 text-mist">The map needs WebGL. Open Dementra in a current Chrome, Safari or Firefox.</p>
+        <p className={dark ? "p-6 text-mist" : "p-6 text-ink-muted"}>
+          The map needs WebGL. Open Dementra in a current Chrome, Safari or Firefox.
+        </p>
       </div>
     );
   }
   return <div ref={host} role="region" aria-label={label} className={className} />;
 }
 
-/** Toggle 2D/3D on an existing map. */
+/**
+ * Compact attribution starts expanded and stays that way until a drag. Data loads
+ * expand it again, which covers the block map and the preview card. Keep it shut
+ * until the reader opens the credit.
+ */
+function keepAttributionCollapsed(map: MlMap): void {
+  const attrib = map.getContainer().querySelector(".maplibregl-ctrl-attrib");
+  if (!(attrib instanceof HTMLElement)) return;
+  let openedByReader = false;
+  attrib.querySelector(".maplibregl-ctrl-attrib-button")?.addEventListener("click", () => {
+    openedByReader = attrib.classList.contains("maplibregl-compact-show");
+  });
+  const collapse = () => {
+    if (!openedByReader) attrib.classList.remove("maplibregl-compact-show");
+  };
+  collapse();
+  map.on("styledata", collapse);
+  map.on("sourcedata", collapse);
+  map.on("resize", collapse);
+}
+
+/** Toggle 2D/3D on an existing map. Reduced motion jumps instead of flying. */
 export function setMode(map: MlMap, mode: "2d" | "3d", exaggeration: number = VIEW_3D.exaggeration): void {
   const view = mode === "3d" ? VIEW_3D : VIEW_2D;
   map.setTerrain(mode === "3d" ? { source: "terrain", exaggeration } : null);
-  map.easeTo({ pitch: view.pitch, bearing: view.bearing, duration: 900 });
+  map.easeTo({ pitch: view.pitch, bearing: view.bearing, duration: motionDuration(900) });
 }

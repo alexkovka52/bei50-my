@@ -48,7 +48,7 @@ export function MapToolbar({ farm, flown, query, mode, layersOpen, onQuery, onSe
       <div className="hidden pr-1.5 text-[15px] font-semibold min-[1025px]:block">{farm}</div>
       <form role="search" onSubmit={onSubmit} className="min-w-0 flex-1 min-[1025px]:w-60 min-[1025px]:flex-none">
         <label
-          className="flex h-11 items-center gap-2 rounded-pill border border-[rgba(227,238,212,0.14)] bg-[rgba(15,42,29,0.76)] px-3.5 text-mist backdrop-blur-[16px] min-[1025px]:border-transparent min-[1025px]:bg-[rgba(227,238,212,0.08)]"
+          className="flex h-11 items-center gap-2 rounded-pill border border-[rgba(227,238,212,0.14)] bg-[rgba(15,42,29,0.76)] px-3.5 text-mist backdrop-blur-[16px] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-budbreak min-[1025px]:border-transparent min-[1025px]:bg-[rgba(227,238,212,0.08)]"
         >
           <Search aria-hidden="true" size={16} strokeWidth={2} />
           <input
@@ -58,7 +58,7 @@ export function MapToolbar({ farm, flown, query, mode, layersOpen, onQuery, onSe
             placeholder="Find a block or row"
             autoComplete="off"
             spellCheck={false}
-            className={cn("w-full min-w-0 border-0 bg-transparent text-sm text-dew outline-none placeholder:text-mist", focusRing)}
+            className="w-full min-w-0 border-0 bg-transparent text-sm text-dew outline-none placeholder:text-mist"
           />
         </label>
       </form>

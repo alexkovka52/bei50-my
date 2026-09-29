@@ -31,7 +31,6 @@ import {
   rowNumberFromId,
   selectionForLocation,
   viewPadding,
-  type CatalogWaste,
   type GapSelection,
   type LayerKey,
   type LayerVisibility,
@@ -46,15 +45,16 @@ import { MapToolbar } from "./MapToolbar";
 import { cn } from "@/lib/utils";
 import { glass, glassButton } from "./styles";
 
-const WASTE_SOURCE = "workspace-waste";
-const WASTE_LAYER = "workspace-waste-points";
+const WASTE_LAYER = "waste-circle";
 
 type MapWorkspaceProps = {
   catalog: MapCatalog;
   initialSearch: string;
+  /** Truthful inspector-walk sentence. The shared waste layer already draws the points. */
+  walkNote: string;
 };
 
-export function MapWorkspace({ catalog, initialSearch }: MapWorkspaceProps) {
+export function MapWorkspace({ catalog, initialSearch, walkNote }: MapWorkspaceProps) {
   const initialLocation = useMemo(() => parseMapSearch(initialSearch), [initialSearch]);
   const blockIds = useMemo(() => catalog.blocks.map((block) => block.id), [catalog.blocks]);
   const rowIds = useMemo(() => catalog.rows.map((row) => row.id), [catalog.rows]);
@@ -283,7 +283,6 @@ export function MapWorkspace({ catalog, initialSearch }: MapWorkspaceProps) {
     canvas.tabIndex = 0;
     canvas.setAttribute("aria-label", `${catalog.farm} map`);
     applyLayers(map, layersRef.current);
-    addWasteMarkers(map, catalog.waste, layersRef.current.waste);
     bind(map);
     if (!flew.current) {
       flew.current = true;
@@ -504,7 +503,7 @@ export function MapWorkspace({ catalog, initialSearch }: MapWorkspaceProps) {
   return (
     <div className="map-workspace absolute inset-0">
       <style>{`.map-workspace .maplibregl-ctrl-logo,.map-workspace .maplibregl-ctrl-bottom-left{display:none !important}.map-workspace .map-close{display:none !important}@media (min-width:1025px){.map-workspace .map-close{display:inline-flex !important}}`}</style>
-      <div className="absolute inset-0 z-0 [&_.maplibregl-ctrl-attrib]:!max-w-[11rem] [&_.maplibregl-ctrl-attrib]:!overflow-hidden [&_.maplibregl-ctrl-attrib]:!text-ellipsis [&_.maplibregl-ctrl-attrib]:!whitespace-nowrap [&_.maplibregl-ctrl-attrib]:!rounded-[12px] [&_.maplibregl-ctrl-attrib]:!bg-[rgba(15,42,29,0.72)] [&_.maplibregl-ctrl-attrib]:!px-2 [&_.maplibregl-ctrl-attrib]:!py-1 [&_.maplibregl-ctrl-attrib]:!text-[11px] [&_.maplibregl-ctrl-attrib]:!text-mist [&_.maplibregl-ctrl-bottom-right]:!top-20 [&_.maplibregl-ctrl-bottom-right]:!right-auto [&_.maplibregl-ctrl-bottom-right]:!bottom-auto [&_.maplibregl-ctrl-bottom-right]:!left-4 min-[1025px]:[&_.maplibregl-ctrl-bottom-right]:!top-auto min-[1025px]:[&_.maplibregl-ctrl-bottom-right]:!bottom-3 min-[1025px]:[&_.maplibregl-ctrl-bottom-right]:!left-[13.75rem]">
+      <div className="absolute inset-0 z-0 [&_.maplibregl-ctrl-bottom-right]:!top-auto [&_.maplibregl-ctrl-bottom-right]:!right-4 [&_.maplibregl-ctrl-bottom-right]:!bottom-4 [&_.maplibregl-ctrl-bottom-right]:!left-auto min-[1025px]:[&_.maplibregl-ctrl-bottom-right]:!right-auto min-[1025px]:[&_.maplibregl-ctrl-bottom-right]:!bottom-3 min-[1025px]:[&_.maplibregl-ctrl-bottom-right]:!left-[13.75rem]">
         <MapCanvas
           center={catalog.center}
           zoom={13}
@@ -556,6 +555,7 @@ export function MapWorkspace({ catalog, initialSearch }: MapWorkspaceProps) {
           onExaggeration={onExaggeration}
           onOpacity={onOpacity}
           onClose={() => setCollapsed(true)}
+          note={walkNote}
         />
       </div>
       {collapsed ? (
@@ -585,6 +585,7 @@ export function MapWorkspace({ catalog, initialSearch }: MapWorkspaceProps) {
               onExaggeration={onExaggeration}
               onOpacity={onOpacity}
               onClose={() => setSheetOpen(false)}
+              note={walkNote}
             />
           </div>
         </div>
@@ -643,41 +644,4 @@ function readScale(map: MlMap): string {
 function applyLayers(map: MlMap, layers: LayerVisibility) {
   const flags = layerVisibilityToMap(layers);
   for (const name of Object.keys(flags) as LayerName[]) setDataLayerVisible(map, name, flags[name]);
-  if (map.getLayer(WASTE_LAYER)) map.setLayoutProperty(WASTE_LAYER, "visibility", layers.waste ? "visible" : "none");
-}
-
-/**
- * The shared waste layer is drawn as circles, while the published waste
- * geometries are polygons, so this screen adds a marker at each footprint centre.
- */
-function addWasteMarkers(map: MlMap, waste: CatalogWaste[], visible: boolean) {
-  if (map.getSource(WASTE_SOURCE)) return;
-  map.addSource(WASTE_SOURCE, {
-    type: "geojson",
-    promoteId: "id",
-    data: {
-      type: "FeatureCollection",
-      features: waste.map((item) => ({
-        type: "Feature" as const,
-        id: item.id,
-        properties: { id: item.id, block: item.block },
-        geometry: { type: "Point" as const, coordinates: item.at },
-      })),
-    },
-  });
-  map.addLayer(
-    {
-      id: WASTE_LAYER,
-      type: "circle",
-      source: WASTE_SOURCE,
-      layout: { visibility: visible ? "visible" : "none" },
-      paint: {
-        "circle-color": "#C9432F",
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 3, 20, 8],
-        "circle-stroke-color": "#0F2A1D",
-        "circle-stroke-width": 2,
-      },
-    },
-    map.getLayer("gaps-circle") ? "gaps-circle" : undefined,
-  );
 }
