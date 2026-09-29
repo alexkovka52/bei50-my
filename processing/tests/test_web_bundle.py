@@ -479,3 +479,71 @@ def test_cli_web_bundle_one_line(tmp_path: Path, capsys):
     assert summary["source"] == "marcaj-labels"
     assert (out / "layers" / "plants.geojson").is_file()
     assert (out / "blocks.json").is_file()
+
+
+def test_missing_interrow_cover_is_unset():
+    y = 5220200.0
+    items = [
+        _row("B", "B-R1", X0, X0 + 210, y),
+        _interrow("B", X0, y + 3, None),
+        _interrow("B", X0 + 30, y + 3, "grass"),
+        _interrow("B", X0 + 60, y + 3, "unset"),
+        _interrow("B", X0 + 90, y + 3, "bare_soil"),
+    ]
+    bundle = _bundle(items)
+    covers = [f["properties"]["cover"] for f in bundle["layers/interrows.geojson"]["features"]]
+    assert covers == ["unset", "unset", "unset", "bare_soil"]
+    assert bundle["summary.json"]["cover"]["unset"] == 3
+    assert bundle["summary.json"]["cover"]["bare_soil"] == 1
+
+
+def test_unnumbered_row_does_not_reuse_r001():
+    y = 5223000.0
+    numbered = _row("A", "A-R001", X0, X0 + 200, y)
+    numbered_tail = _row("A", "A-R001", X0 + 200, X0 + 280, y)
+    bare = _row("A", "row-a", X0, X0 + 80, y + 8)
+
+    def rows_of(items):
+        return {row["id"]: row for row in _bundle(items)["rows.json"]["rows"]}
+
+    for items in ((numbered, numbered_tail, bare), (bare, numbered, numbered_tail)):
+        rows = rows_of(items)
+        assert set(rows) == {"V01-R001", "V01-R002"}
+        assert rows["V01-R001"]["length_m"] == 280.0
+        assert rows["V01-R001"]["pieces"] == 2
+        assert rows["V01-R002"]["length_m"] == 80.0
+        assert rows["V01-R002"]["pieces"] == 1
+        assert rows["V01-R001"]["block"] == "V01"
+        assert rows["V01-R002"]["block"] == "V01"
+
+
+def test_write_bundle_drops_stale_routes_layers_and_pmtiles(tmp_path: Path):
+    farmer = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "properties": {"length_m": 10, "role": "farmer"},
+                "geometry": {"type": "LineString", "coordinates": [[28.71, 47.12], [28.72, 47.13]]},
+            }
+        ],
+    }
+    write_bundle(_bundle([], routes={"inspector": farmer, "farmer": farmer}), tmp_path)
+    assert (tmp_path / "routes" / "inspector.geojson").is_file()
+    assert (tmp_path / "routes" / "farmer.geojson").is_file()
+    (tmp_path / "routes" / "notes.txt").write_text("keep", encoding="utf-8")
+    (tmp_path / "layers" / "legacy.geojson").write_text("stale", encoding="utf-8")
+    (tmp_path / "layers.pmtiles").write_bytes(b"stale")
+    (tmp_path / "keep.txt").write_text("keep", encoding="utf-8")
+
+    write_bundle(_bundle([], routes={"farmer": farmer}), tmp_path)
+
+    assert not (tmp_path / "routes" / "inspector.geojson").exists()
+    written = json.loads((tmp_path / "routes" / "farmer.geojson").read_text(encoding="utf-8"))
+    assert written["features"][0]["properties"]["role"] == "farmer"
+    assert (tmp_path / "routes" / "notes.txt").read_text(encoding="utf-8") == "keep"
+    assert not (tmp_path / "layers" / "legacy.geojson").exists()
+    assert (tmp_path / "layers" / "plants.geojson").is_file()
+    assert not (tmp_path / "layers.pmtiles").exists()
+    assert (tmp_path / "keep.txt").read_text(encoding="utf-8") == "keep"
+    assert (tmp_path / "summary.json").is_file()

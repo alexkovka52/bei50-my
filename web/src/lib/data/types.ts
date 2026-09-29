@@ -12,6 +12,9 @@ export type CoverCounts = {
   unset: number;
 };
 
+/** Inter-row cover. Missing and unknown values are stored as `unset`. */
+export type InterrowCover = keyof CoverCounts;
+
 export type StructureCounts = {
   regular: number;
   disrupted: number;
@@ -92,7 +95,7 @@ export type RowStructure = "regular" | "disrupted" | "unassessable" | null;
 
 export type VineyardRow = {
   id: string;
-  block: string;
+  block: string | null;
   row: number;
   length_m: number;
   structure: RowStructure;
@@ -125,7 +128,7 @@ export type TasksFile = {
 export type ModelMetric = {
   key: string;
   label: string;
-  before: string;
+  before: string | null;
   now: string | null;
 };
 
@@ -177,19 +180,19 @@ export type FeatureCollection<G extends GeoJsonGeometry, P> = {
 export type RouteRole = "inspector" | "farmer";
 
 export type RouteProperties = {
-  length_m: number;
+  length_m: number | null;
   role: RouteRole;
-  targets_total: number;
-  targets_visited: number;
+  targets_total: number | null;
+  targets_visited: number | null;
 };
 
 export type RouteCollection = FeatureCollection<GeoJsonLineString, RouteProperties>;
 
-export type PlantProperties = { block: string };
-export type RowProperties = { id: string; block: string; structure: RowStructure };
-export type InterrowProperties = { block: string; cover: string };
-export type GapProperties = { id: string; block: string; row_id: string; gap_m: number };
-export type WasteProperties = { id: string; block: string };
+export type PlantProperties = { block: string | null };
+export type RowProperties = { id: string; block: string | null; structure: RowStructure };
+export type InterrowProperties = { block: string | null; cover: InterrowCover };
+export type GapProperties = { id: string; block: string | null; row_id: string; gap_m: number };
+export type WasteProperties = { id: string; block: string | null };
 export type BlockOutlineProperties = {
   id: string;
   rows: number;
