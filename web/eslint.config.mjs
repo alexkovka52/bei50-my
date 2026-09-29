@@ -19,7 +19,14 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
       "public/maplibre-gl*.mjs",
+      "playwright-report/**",
+      "test-results/**",
     ],
+  },
+  {
+    // Playwright fixtures take a `use` callback that is not React's `use` hook.
+    files: ["e2e/**"],
+    rules: { "react-hooks/rules-of-hooks": "off" },
   },
 ];
 
