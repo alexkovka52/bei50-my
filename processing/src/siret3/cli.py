@@ -407,6 +407,7 @@ def _cmd_route(args: argparse.Namespace) -> int:
         require_legal=True,
         passable=passable_from_items(items),
         report=report,
+        reach_m=args.reach_m,
     )
     role = "farmer" if wanted == {"waste"} else "inspector"
     write_route_geojson(tour, Path(args.out), start=start, role=role, targets=report)
@@ -479,6 +480,7 @@ def main(argv: list[str] | None = None) -> int:
         default="inspections,waste",
         help="comma list: inspections,waste (inspector) or waste (farmer)",
     )
+    rt.add_argument("--reach-m", type=float, default=30.0, help="serve targets within this distance of legal ground")
     rt.add_argument("--max-dropped", type=float, default=0.05, help="fail if more targets than this share are skipped")
     rt.set_defaults(func=_cmd_route)
 

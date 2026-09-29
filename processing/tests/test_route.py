@@ -157,3 +157,14 @@ def test_closed_walk_reports_off_passable_targets():
     report: dict = {}
     closed_walk([(20.0, 2.0), (60.0, 2.0), (50.0, 40.0)], (1.0, 2.0), passable=passable, report=report)
     assert report["targets"] == 3 and report["off_passable"] == 1 and report["visited"] == 2
+
+
+def test_closed_walk_serves_targets_within_reach():
+    from shapely.geometry import box
+
+    from siret3.route import closed_walk
+
+    passable = box(0, 0, 100, 4)
+    report: dict = {}
+    closed_walk([(20.0, 2.0), (60.0, 14.0), (50.0, 40.0)], (1.0, 2.0), passable=passable, report=report, reach_m=30)
+    assert report["off_passable"] == 1 and report["visited"] == 2

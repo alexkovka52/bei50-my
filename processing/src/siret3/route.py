@@ -13,6 +13,8 @@ from .ids import centroid
 
 OFFICIAL_START = (629504.70, 5220250.75)
 VISIT_M = 2.0
+# A target this close to legal ground is served from its nearest legal point (the walker steps over).
+REACH_M = 30.0
 ILLEGAL_MAX = 0.02
 PATH_PAD_M = 0.05  # match the score slop so hops cannot ride a fatter pad
 
@@ -329,6 +331,7 @@ def closed_walk(
     require_legal: bool = False,
     passable=None,
     report: dict | None = None,
+    reach_m: float = REACH_M,
 ) -> list[tuple[float, float]]:
     """Closed legal walk from `start` through the waypoints.
 
@@ -370,7 +373,7 @@ def closed_walk(
         for n in kept:
             if n == depot:
                 continue
-            if Point(n).distance(passable) <= VISIT_M:
+            if Point(n).distance(passable) <= reach_m:
                 snapped.append(_project_onto_passable(n, passable))
             else:
                 report["off_passable"] += 1
