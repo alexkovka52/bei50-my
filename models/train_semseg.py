@@ -94,26 +94,24 @@ def build_model(arch: str, encoder: str, n_classes: int):
 
 
 @torch.no_grad()
-def predict_tile(model, rgb: np.ndarray, *, crop: int = 1024, stride: int = 768, n_classes: int = 5) -> np.ndarray:
-    """Sliding-window softmax average over a full tile. Returns (C, H, W) float32 probabilities."""
+def predict_tile(model, rgb: np.ndarray, *, crop: int = 1024, stride: int = 768, n_classes: int = 5,
+                 batch: int = 2) -> np.ndarray:
+    """Sliding-window softmax average (with h-flip TTA) over a full tile. Returns (C, H, W) float32."""
     h, w = rgb.shape[:2]
     ys = sorted({*range(0, max(h - crop, 0) + 1, stride), max(h - crop, 0)})
     xs = sorted({*range(0, max(w - crop, 0) + 1, stride), max(w - crop, 0)})
     acc = torch.zeros((n_classes, h, w), device="cuda")
     cnt = torch.zeros((1, h, w), device="cuda")
-    batch, where = [], []
-    for y0 in ys:
-        for x0 in xs:
-            batch.append(to_tensor(rgb[y0 : y0 + crop, x0 : x0 + crop]))
-            where.append((y0, x0))
-    x = torch.stack(batch).cuda()
-    with torch.autocast("cuda", dtype=torch.bfloat16):
-        logits = model(x).float()
-        logits = (logits + model(x.flip(-1)).float().flip(-1)) / 2
-    prob = logits.softmax(1)
-    for p, (y0, x0) in zip(prob, where):
-        acc[:, y0 : y0 + crop, x0 : x0 + crop] += p
-        cnt[:, y0 : y0 + crop, x0 : x0 + crop] += 1
+    where = [(y0, x0) for y0 in ys for x0 in xs]
+    for k in range(0, len(where), batch):
+        part = where[k : k + batch]
+        x = torch.stack([to_tensor(rgb[y0 : y0 + crop, x0 : x0 + crop]) for y0, x0 in part]).cuda()
+        with torch.autocast("cuda", dtype=torch.bfloat16):
+            logits = model(x).float()
+            logits = (logits + model(x.flip(-1)).float().flip(-1)) / 2
+        for p, (y0, x0) in zip(logits.softmax(1), part):
+            acc[:, y0 : y0 + crop, x0 : x0 + crop] += p
+            cnt[:, y0 : y0 + crop, x0 : x0 + crop] += 1
     return (acc / cnt).cpu().numpy()
 
 

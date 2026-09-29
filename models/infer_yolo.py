@@ -99,12 +99,15 @@ def _nms(items: list[dict], iou_thr: float) -> list[dict]:
 
 def infer_tile(model, tile: Path, *, chip: int, stride: int, conf: float, imgsz: int, max_det: int,
                tta: bool = False, iou_thr: float = 0.5) -> list[dict]:
+    import numpy as np
+
     rgb = _read_rgb(tile)
     height, width = rgb.shape[:2]
     margin = (chip - stride) / 2
     found: list[dict] = []
     windows = chip_grid(width, height, chip, stride)
-    crops = [rgb[y0 : y0 + h, x0 : x0 + w] for x0, y0, w, h in windows]
+    # Ultralytics treats numpy input as BGR (OpenCV order); training chips were read with cv2.
+    crops = [np.ascontiguousarray(rgb[y0 : y0 + h, x0 : x0 + w, ::-1]) for x0, y0, w, h in windows]
     results = model.predict(source=crops, imgsz=imgsz, conf=conf, max_det=max_det, retina_masks=True,
                             augment=tta, verbose=False)
     for (x0, y0, w, h), result in zip(windows, results):
@@ -153,7 +156,7 @@ def main() -> int:
     p.add_argument("--chip", type=int, default=1024)
     p.add_argument("--stride", type=int, default=768)
     p.add_argument("--imgsz", type=int, default=0, help="default: same as --chip (native resolution)")
-    p.add_argument("--conf", type=float, default=0.25)
+    p.add_argument("--conf", type=float, default=0.15)
     p.add_argument("--iou", type=float, default=0.5, help="cross-chip polygon NMS IoU")
     p.add_argument("--max-det", type=int, default=1500)
     p.add_argument("--tta", action="store_true")
