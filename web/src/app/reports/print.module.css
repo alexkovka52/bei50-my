@@ -1,0 +1,103 @@
+.sheet {
+  min-width: 0;
+}
+
+.columns {
+  min-width: 0;
+}
+
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+@media (max-width: 720px) {
+  :global(header) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  :global(header h1) {
+    font-size: 32px;
+  }
+
+  :global(header > div) {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  :global(header > div:last-child label) {
+    width: auto !important;
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+}
+
+@media print {
+  :global(html),
+  :global(body) {
+    height: auto !important;
+    min-height: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  :global(body > div) {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  :global(nav[aria-label="Main"]) {
+    display: none !important;
+  }
+
+  :global(header) {
+    display: none !important;
+  }
+
+  :global(nav[aria-label="Main"] + div) {
+    min-height: 0 !important;
+    padding: 0 !important;
+    gap: 8px !important;
+    transform: none !important;
+  }
+
+  :global(body *) {
+    color: #000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .hide {
+    display: none !important;
+  }
+
+  .columns {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .sheet table {
+    font-size: 11px;
+  }
+
+  .sheet th,
+  .sheet td {
+    padding-top: 3px !important;
+    padding-bottom: 3px !important;
+  }
+
+  .sheet h2 {
+    margin: 0 !important;
+    font-size: 14px !important;
+  }
+
+  .sheet section {
+    break-inside: avoid;
+    padding: 0 !important;
+  }
+}
