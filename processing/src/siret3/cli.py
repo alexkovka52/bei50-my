@@ -67,7 +67,10 @@ def _rings_from_geometry(geom: dict) -> list[tuple[list[tuple[float, float]], li
 
 
 def _load_projected(path: Path) -> list[ProjectedPoly]:
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    return _items_from_collection(json.loads(Path(path).read_text(encoding="utf-8")))
+
+
+def _items_from_collection(data) -> list[ProjectedPoly]:
     items = []
     for feat in data.get("features", data if isinstance(data, list) else []):
         props = feat.get("properties", feat)
@@ -103,6 +106,30 @@ def _dump_geojson(items: list[ProjectedPoly], out: Path) -> None:
     dump_projected_geojson(items, Path(out))
 
 
+def _cmd_assemble(args: argparse.Namespace) -> int:
+    from collections import Counter
+
+    from shapely.geometry import shape
+    from shapely.ops import unary_union
+
+    from .assemble import assemble
+    from .project import project_inputs
+
+    fc = project_inputs([Path(p) for p in args.inputs], Path(args.tiles))
+    items = _items_from_collection(fc)
+    passages = None
+    if args.passages and Path(args.passages).is_file():
+        data = json.loads(Path(args.passages).read_text(encoding="utf-8"))
+        passages = unary_union([shape(f["geometry"]).buffer(0) for f in data["features"]])
+    items = assemble(items, passages=passages)
+    _dump_geojson(items, Path(args.out))
+    kinds = dict(Counter(p.kind for p in items))
+    n_blocks = len({p.vineyard_id for p in items if p.vineyard_id})
+    n_rows = len({p.row_id for p in items if p.row_id})
+    print(f"assembled {kinds}, {n_blocks} blocks, {n_rows} rows -> {args.out}")
+    return 0
+
+
 def _cmd_stitch(args: argparse.Namespace) -> int:
     items = _load_projected(Path(args.predictions))
     passages = None
@@ -124,12 +151,12 @@ def _cmd_stitch(args: argparse.Namespace) -> int:
 
 
 def _cmd_cvat(args: argparse.Namespace) -> int:
-    from .cvat_parse import parse_cvat_zip
     from .tiles import list_tile_paths, parse_tile_name
 
     tiles_dir = Path(args.tiles)
     if args.from_cvat:
-        images = parse_cvat_zip(Path(args.from_cvat))
+        # Marcaj exports name images "1713_siret3_r017_c008.tif"; merge back to tile names.
+        images = collect_cvat_images(Path(args.from_cvat))
     elif args.shapes:
         images = images_from_projected(_load_projected(Path(args.shapes)), tiles_dir)
     else:
@@ -246,7 +273,7 @@ def _cmd_web_layers(args: argparse.Namespace) -> int:
 def _cmd_route(args: argparse.Namespace) -> int:
     from .crs import to_work_xy
     from .ids import centroid
-    from .inspect import parse_targets, select_waypoints, waste_targets
+    from .inspect import parse_targets, select_waypoints
     from .route import load_official_start, passable_from_items
 
     if args.start:
@@ -286,12 +313,7 @@ def _cmd_route(args: argparse.Namespace) -> int:
         ]
     if not waypoints:
         raise SystemExit("No route targets (need inspections, waste, or interrow_area)")
-    if "inspections" in wanted and len(waypoints) > 280:
-        waste = waste_targets(items)
-        rest = [p for p in waypoints if p not in set(waste)]
-        step = max(1, len(rest) // max(1, 280 - len(waste)))
-        waypoints = waste + rest[::step]
-        print(f"capped inspector waypoints to {len(waypoints)}")
+    report: dict = {}
     tour = closed_walk(
         waypoints,
         start,
@@ -301,10 +323,14 @@ def _cmd_route(args: argparse.Namespace) -> int:
         tolerance_m=args.tolerance,
         require_legal=True,
         passable=passable_from_items(items),
+        report=report,
     )
     role = "farmer" if wanted == {"waste"} else "inspector"
-    write_route_geojson(tour, Path(args.out), start=start, role=role)
-    print(f"closed walk {len(tour)} vertices role={role} -> {args.out}")
+    write_route_geojson(tour, Path(args.out), start=start, role=role, targets=report)
+    dropped = report["targets"] - report["visited"]
+    print(f"closed walk {len(tour)} vertices role={role} targets {report} -> {args.out}")
+    if report["targets"] and dropped / report["targets"] > args.max_dropped:
+        raise SystemExit(f"{dropped}/{report['targets']} targets not on the walk (limit {args.max_dropped:.0%})")
     return 0
 
 
@@ -370,6 +396,7 @@ def main(argv: list[str] | None = None) -> int:
         default="inspections,waste",
         help="comma list: inspections,waste (inspector) or waste (farmer)",
     )
+    rt.add_argument("--max-dropped", type=float, default=0.05, help="fail if more targets than this share are skipped")
     rt.set_defaults(func=_cmd_route)
 
     mi = sub.add_parser(
@@ -380,6 +407,13 @@ def main(argv: list[str] | None = None) -> int:
     mi.add_argument("--tiles", default="data/tiles")
     mi.add_argument("--out", default="data/marcaj_32635.geojson")
     mi.set_defaults(func=_cmd_marcaj_import)
+
+    asm = sub.add_parser("assemble", help="Per-tile model output (plants, waste, rows, inter-rows) → IDs, EPSG:32635")
+    asm.add_argument("inputs", nargs="+", help="folders of per-tile pixel GeoJSON (infer_yolo / infer_semseg)")
+    asm.add_argument("--tiles", default="data/tiles")
+    asm.add_argument("--passages", default="data/challenge/02_route/passages.geojson")
+    asm.add_argument("--out", default="data/assembled_32635.geojson")
+    asm.set_defaults(func=_cmd_assemble)
 
     sp = sub.add_parser("split", help="Spatial train/val/test split of a Marcaj export by tile blocks")
     sp.add_argument("export", help="Marcaj CVAT ZIP / XML / folder")

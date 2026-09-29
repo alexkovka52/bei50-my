@@ -182,6 +182,26 @@ def _has_structure_without_plants(im: CvatImage) -> bool:
     return "vineyard" not in labels and "row" in labels
 
 
+def plant_row_coverage(im: CvatImage, *, reach_px: float = 12.0) -> float | None:
+    """Share of the GT row length that has a plant polygon within ~0.3 m. None when no rows.
+
+    Low values mean the annotators drew the rows but only some of the plants (seen on
+    continuous-canopy and young blocks), so the plant labels of that tile are incomplete.
+    """
+    from shapely.geometry import LineString
+    from shapely.ops import unary_union
+
+    rows = [LineString(s.points) for s in im.shapes if s.label == "row" and len(s.points) >= 2]
+    total = sum(r.length for r in rows)
+    if total <= 0:
+        return None
+    plants = [g for s in im.shapes if s.label == "vineyard" and (g := _valid_polygonal(s.points)) is not None]
+    if not plants:
+        return 0.0
+    near = unary_union(plants).buffer(reach_px)
+    return sum(r.intersection(near).length for r in rows) / total
+
+
 def split_strip(
     points: list[tuple[float, float]],
     *,
@@ -242,8 +262,13 @@ def build_plant_seg(
     min_frac: float = 0.3,
     min_area: float = 150.0,
     split_strips: bool = True,
+    min_row_coverage: float = 0.45,
 ) -> dict[str, dict[str, int]]:
-    """YOLO-seg chips of per-plant canopies. Tiles with rows but no plant polygons are skipped."""
+    """YOLO-seg chips of per-plant canopies.
+
+    Tiles whose plant labels are incomplete (plants cover < `min_row_coverage` of the drawn rows)
+    are skipped, so visible but unlabelled vines are never taught as background.
+    """
     out = Path(out)
     dirs = _fresh(out)
     rng = random.Random(seed)
@@ -252,7 +277,8 @@ def build_plant_seg(
         sub = _subset(split, im.name)
         if sub is None:
             continue
-        if _has_structure_without_plants(im):
+        cov = plant_row_coverage(im)
+        if _has_structure_without_plants(im) or (cov is not None and cov < min_row_coverage):
             stats[sub]["skipped_tiles"] += 1
             continue
         name = canonical_tile_name(im.name)
@@ -355,6 +381,8 @@ def build_semseg(
     tiles_dir: Path,
     split: dict[str, str],
     out: Path,
+    *,
+    min_row_coverage: float = 0.45,
 ) -> dict[str, int]:
     """Full-tile cover masks (`masks/`), row-line masks (`rowmasks/`) + per-subset lists. Training crops chips on the fly from the GeoTIFFs."""
     import json
@@ -371,6 +399,9 @@ def build_semseg(
             continue
         name = canonical_tile_name(im.name)
         mask = semseg_mask(im.shapes, im.width or 2048, im.height or 2048)
+        cov = plant_row_coverage(im)
+        if cov is not None and cov < min_row_coverage:
+            mask[mask == 0] = IGNORE  # unlabelled canopy hides in "background" on this tile
         _save_png(out / "masks" / f"{Path(name).stem}.png", mask)
         _save_png(out / "rowmasks" / f"{Path(name).stem}.png", row_mask(im.shapes, im.width or 2048, im.height or 2048))
         lists[sub].append(name)

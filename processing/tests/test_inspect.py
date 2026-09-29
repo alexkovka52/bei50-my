@@ -90,3 +90,21 @@ def test_select_waypoints_uses_existing_inspection_points():
     assert len([p for p in pts if p == (3.1, 0.0)]) == 1
     farmer = select_waypoints(plants + [ins, waste], {"waste"})
     assert len(farmer) == 1
+
+
+def test_plants_go_to_nearest_row_line_not_centroid():
+    from siret3.ids import ProjectedPoly
+    from siret3.inspect import inspections_from_canopies
+
+    def sq(x, y):
+        return [(x - 0.2, y - 0.2), (x + 0.2, y - 0.2), (x + 0.2, y + 0.2), (x - 0.2, y + 0.2)]
+
+    long_row = ProjectedPoly(kind="row", coords=[(0, 0), (100, 0)], tile="A", vineyard_id="V01", row_id="V01-R001")
+    short_row = ProjectedPoly(kind="row", coords=[(95, 2.5), (100, 2.5)], tile="A", vineyard_id="V01", row_id="V01-R002")
+    # plants every metre on the long row, except a 10 m gap at x=40..50; the plants near x=95..100
+    # are closer to the short row's centroid than to the long row's centroid, but on the long row line.
+    plants = [ProjectedPoly(kind="vineyard", coords=sq(x, 0), tile="A", vineyard_id="V01")
+              for x in range(0, 101) if not 40 < x < 50]
+    out = inspections_from_canopies([long_row, short_row, *plants])
+    assert [o.row_id for o in out] == ["V01-R001"]
+    assert abs(out[0].coords[0][0] - 44.5) < 0.6

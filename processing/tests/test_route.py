@@ -136,3 +136,24 @@ def test_closed_walk_rejects_illegal_when_required():
             interrows=[left, right],
             require_legal=True,
         )
+
+
+def test_two_opt_removes_crossing():
+    from siret3.route import _two_opt
+
+    crossed = [(0, 0), (10, 10), (10, 0), (0, 10), (0, 0)]
+    out = _two_opt(crossed)
+    length = lambda t: sum(((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5 for a, b in zip(t, t[1:]))
+    assert out[0] == out[-1] and len(out) == 5
+    assert length(out) < length(crossed) - 1
+
+
+def test_closed_walk_reports_off_passable_targets():
+    from shapely.geometry import box
+
+    from siret3.route import closed_walk
+
+    passable = box(0, 0, 100, 4)
+    report: dict = {}
+    closed_walk([(20.0, 2.0), (60.0, 2.0), (50.0, 40.0)], (1.0, 2.0), passable=passable, report=report)
+    assert report["targets"] == 3 and report["off_passable"] == 1 and report["visited"] == 2

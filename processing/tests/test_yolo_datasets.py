@@ -131,3 +131,20 @@ def test_tiles_with_fields_but_no_rows_are_plant_negatives():
     rows = CvatImage(name="siret3_r000_c000.tif", width=64, height=64,
                      shapes=[CvatShape(tag="polyline", label="row", points=[(0, 0), (60, 0)])])
     assert _has_structure_without_plants(rows)
+
+
+def test_row_coverage_flags_partially_labelled_tiles():
+    from siret3.yolo_datasets import plant_row_coverage
+
+    row = CvatShape(tag="polyline", label="row", points=[(0, 100), (1000, 100)])
+    plants = [CvatShape(tag="polygon", label="vineyard", points=_sq_pts(x, 90, 40)) for x in range(0, 1000, 50)]
+    full = CvatImage(name="siret3_r000_c000.tif", width=1024, height=1024, shapes=[row, *plants])
+    sparse = CvatImage(name="siret3_r000_c000.tif", width=1024, height=1024, shapes=[row, *plants[:3]])
+    field = CvatImage(name="siret3_r000_c000.tif", width=1024, height=1024, shapes=[_shapes()[1]])
+    assert plant_row_coverage(full) > 0.9
+    assert plant_row_coverage(sparse) < 0.2
+    assert plant_row_coverage(field) is None
+
+
+def _sq_pts(x, y, s):
+    return [(x, y), (x + s, y), (x + s, y + s), (x, y + s)]

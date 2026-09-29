@@ -315,7 +315,7 @@ def derive_from_canopies(
                 poly.interrow_cover = "unassessable"
     else:
         for poly in inter:
-            poly.interrow_cover = poly.interrow_cover or "bare_soil"
+            poly.interrow_cover = poly.interrow_cover or "unassessable"
     out = vines + rows + inter + others
     _assign_waste_ids(out)
     return out
@@ -398,7 +398,7 @@ def images_from_projected(items: list[ProjectedPoly], tiles_dir: Path) -> list[C
             else:
                 label = "interrow_area" if p.kind == "interrow_area" else "vineyard"
                 if p.kind == "interrow_area":
-                    attrs["interrow_cover"] = p.interrow_cover or "bare_soil"
+                    attrs["interrow_cover"] = p.interrow_cover or "unassessable"
                 tol = 8.0 if p.kind == "interrow_area" else 2.0
                 px = clip_simplify_ring(px, width, height, tol)
                 shapes.append(CvatShape(tag="polygon", label=label, points=px, attributes=attrs))

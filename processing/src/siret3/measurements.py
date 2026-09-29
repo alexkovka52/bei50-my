@@ -31,7 +31,9 @@ def _line_length(coords: list[tuple[float, float]]) -> float:
 
 
 def measure(item: ProjectedPoly) -> dict:
-    area = _ring_area(item.coords) if item.kind in {"vineyard", "interrow_area", "waste"} else ""
+    # Same repaired polygon as the summary rows, so per-feature and union areas agree.
+    geom = _poly(item) if item.kind in {"vineyard", "interrow_area", "waste"} else None
+    area = geom.area if geom is not None else ("" if item.kind not in {"vineyard", "interrow_area", "waste"} else 0.0)
     length = _line_length(item.coords) if item.kind == "row" else ""
     if item.kind == "waste" and len(item.coords) >= 2:
         # bbox as two corners or a ring

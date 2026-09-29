@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .cvat11 import CvatImage
 from .example_yolo import canonical_tile_name
-from .yolo_datasets import _valid_polygonal, split_strip
+from .yolo_datasets import _valid_polygonal, plant_row_coverage, split_strip
 
 
 def _pred_polys(path: Path, kind: str, min_score: float):
@@ -93,6 +93,7 @@ def evaluate(
         tp = n_gt = n_pred = 0
         abs_err = 0
         per_tile = {}
+        ctp = cgt = cpred = 0
         for im in tiles:
             name = canonical_tile_name(im.name)
             gt = []
@@ -107,8 +108,13 @@ def evaluate(
             t = match(gt, pred, iou)
             tp, n_gt, n_pred = tp + t, n_gt + len(gt), n_pred + len(pred)
             abs_err += abs(len(pred) - len(gt))
-            per_tile[name] = {"gt": len(gt), "pred": len(pred), "tp": t}
+            cov = plant_row_coverage(im)
+            complete = cov is None or cov >= 0.45
+            if complete:
+                ctp, cgt, cpred = ctp + t, cgt + len(gt), cpred + len(pred)
+            per_tile[name] = {"gt": len(gt), "pred": len(pred), "tp": t, "complete_labels": complete}
         report["plants"] = {**_prf(tp, n_gt, n_pred), "mean_abs_count_err_per_tile": round(abs_err / max(len(tiles), 1), 2)}
+        report["plants_complete_tiles"] = _prf(ctp, cgt, cpred)
         report["plants_per_tile"] = per_tile
     if waste_dir is not None:
         tp = n_gt = n_pred = 0

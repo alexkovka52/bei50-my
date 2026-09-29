@@ -4,51 +4,68 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from .derive import GAP_M, _along_coord, _heading_from_nn
+from .derive import GAP_M, _along_coord
 from .ids import ProjectedPoly, centroid
 
 
-def inspections_from_canopies(items: list[ProjectedPoly]) -> list[ProjectedPoly]:
-    plants_by_row: dict[str, list[ProjectedPoly]] = defaultdict(list)
-    rows = [p for p in items if p.kind == "row"]
+def inspections_from_canopies(items: list[ProjectedPoly], *, max_row_dist_m: float = 1.5) -> list[ProjectedPoly]:
+    """Gap midpoints along each row. Plants go to the nearest row *line* of their block."""
+    import math
+
+    from shapely.geometry import LineString, Point
+    from shapely.strtree import STRtree
+
+    rows = [p for p in items if p.kind == "row" and len(p.coords) >= 2]
     vines = [p for p in items if p.kind == "vineyard"]
     if not rows:
         return []
-    # Assign each plant to nearest row of the same vineyard.
+    lines = [LineString(r.coords) for r in rows]
+    tree = STRtree(lines)
+    plants_by_row: dict[str, list[tuple[float, float]]] = defaultdict(list)
     for v in vines:
-        same = [r for r in rows if r.vineyard_id == v.vineyard_id] or rows
         vc = centroid(v.coords)
-        nearest = min(same, key=lambda r: _dist(vc, centroid(r.coords)))
-        rid = nearest.row_id or "UNK"
-        plants_by_row[rid].append(v)
+        pt = Point(vc)
+        best, best_d = None, max_row_dist_m
+        for k in tree.query(pt.buffer(max_row_dist_m)):
+            r = rows[int(k)]
+            if v.vineyard_id and r.vineyard_id and r.vineyard_id != v.vineyard_id:
+                continue
+            d = lines[int(k)].distance(pt)
+            if d <= best_d:
+                best, best_d = r, d
+        if best is not None:
+            plants_by_row[best.row_id or f"UNK-{id(best)}"].append(vc)
 
+    pieces: dict[str, list[ProjectedPoly]] = defaultdict(list)
+    for r in rows:
+        pieces[r.row_id or f"UNK-{id(r)}"].append(r)
     out: list[ProjectedPoly] = []
-    rows_by_id = {r.row_id: r for r in rows if r.row_id}
-    for rid, plants in plants_by_row.items():
-        row = rows_by_id.get(rid)
-        if row is None or (row.row_structure or "regular") == "regular":
-            # Still emit if a physical 5 m gap exists even if marked regular.
-            pass
-        cents = [centroid(p.coords) for p in plants]
+    for rid, cents in plants_by_row.items():
         if len(cents) < 2:
             continue
-        heading = _heading_from_nn(cents)
+        s = c = 0.0
+        for r in pieces[rid]:
+            (x0, y0), (x1, y1) = r.coords[0], r.coords[-1]
+            h = math.atan2(y1 - y0, x1 - x0)
+            w = math.hypot(x1 - x0, y1 - y0)
+            s, c = s + math.sin(2 * h) * w, c + math.cos(2 * h) * w
+        heading = (0.5 * math.atan2(s, c)) % math.pi
+        row = pieces[rid][0]
         ordered = sorted(cents, key=lambda p: _along_coord(p, heading))
         n = 0
         for a, b in zip(ordered, ordered[1:]):
-            gap = ((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2) ** 0.5
+            gap = abs(_along_coord(b, heading) - _along_coord(a, heading))
             if gap < GAP_M:
                 continue
             n += 1
             mid = ((a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0)
-            vid = row.vineyard_id if row else plants[0].vineyard_id
             out.append(
                 ProjectedPoly(
                     kind="inspection",
                     coords=[mid],
-                    tile=row.tile if row else plants[0].tile,
-                    vineyard_id=vid,
-                    row_id=rid,
+                    tile=row.tile,
+                    vineyard_id=row.vineyard_id,
+                    row_id=row.row_id,
                     extras={"id": f"INS-{rid}-{n:02d}", "gap_m": round(gap, 3)},
                 )
             )

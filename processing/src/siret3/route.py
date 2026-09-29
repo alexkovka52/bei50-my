@@ -158,6 +158,34 @@ def _nearest_neighbor_tour(nodes: list[tuple[float, float]], start: tuple[float,
     return tour
 
 
+def _two_opt(tour: list[tuple[float, float]], max_passes: int = 20) -> list[tuple[float, float]]:
+    """Improve a closed tour (first == last) by 2-opt segment reversals."""
+    import numpy as np
+
+    pts = np.asarray(tour[:-1], dtype=float)
+    n = len(pts)
+    if n < 4:
+        return tour
+    order = list(range(n))
+    for _ in range(max_passes):
+        improved = False
+        for i in range(1, n - 1):
+            a, b = pts[order[i - 1]], pts[order[i]]
+            rest = np.asarray([pts[order[j]] for j in range(i + 1, n)])
+            nxt = np.asarray([pts[order[(j + 1) % n]] for j in range(i + 1, n)])
+            gain = (np.linalg.norm(a - b) + np.linalg.norm(rest - nxt, axis=1)
+                    - np.linalg.norm(a - rest, axis=1) - np.linalg.norm(b - nxt, axis=1))
+            k = int(np.argmax(gain))
+            if gain[k] > 1e-6:
+                j = i + 1 + k
+                order[i : j + 1] = reversed(order[i : j + 1])
+                improved = True
+        if not improved:
+            break
+    out = [tuple(map(float, pts[k])) for k in order]
+    return out + [out[0]]
+
+
 def _graph_nodes(passable) -> list[tuple[float, float]]:
     geoms = list(passable.geoms) if isinstance(passable, MultiPolygon) else [passable]
     nodes: list[tuple[float, float]] = []
@@ -300,7 +328,15 @@ def closed_walk(
     tolerance_m: float = START_TOLERANCE_M,
     require_legal: bool = False,
     passable=None,
+    report: dict | None = None,
 ) -> list[tuple[float, float]]:
+    """Closed legal walk from `start` through the waypoints.
+
+    `report` (if given) receives targets / forbidden / off_passable / unreachable / visited counts,
+    so callers can see every target the walk could not include.
+    """
+    report = report if report is not None else {}
+    report.update(targets=len(waypoints), forbidden=0, off_passable=0, unreachable=0, visited=0)
     interrows = interrows or []
     passages = passages or []
     forbidden = forbidden or []
@@ -324,6 +360,7 @@ def closed_walk(
     kept = []
     for n in nodes:
         if forbidden and any(_point_in_ring(n, z) for z in forbidden):
+            report["forbidden"] += 1
             continue
         kept.append(n)
     if depot not in kept:
@@ -335,9 +372,13 @@ def closed_walk(
                 continue
             if Point(n).distance(passable) <= VISIT_M:
                 snapped.append(_project_onto_passable(n, passable))
+            else:
+                report["off_passable"] += 1
         kept = snapped
 
     try:
+        if len(kept) > 250:  # Christofides is cubic; NN + 2-opt keeps every target
+            raise RuntimeError("large tour")
         import networkx as nx
         from networkx.algorithms.approximation import traveling_salesman_problem
 
@@ -354,9 +395,14 @@ def closed_walk(
             tour = list(tour) + [tour[0]]
         ordered = [(float(x), float(y)) for x, y in tour]
     except Exception:
-        ordered = _nearest_neighbor_tour(kept, depot)
+        ordered = _two_opt(_nearest_neighbor_tour(kept, depot))
+        if depot in ordered:
+            k = ordered.index(depot)
+            ordered = ordered[k:-1] + ordered[:k] + [depot]
 
+    report["visited"] = len({n for n in ordered if n != depot})
     if passable is not None and not passable.is_empty:
+        report["visited"] = 0
         graph, padded = _legal_graph(passable)
         stitched: list[tuple[float, float]] = [ordered[0]]
         cur = ordered[0]
@@ -367,6 +413,7 @@ def closed_walk(
             try:
                 hop = legal_path(cur, b, passable, graph=graph, padded=padded)
             except ValueError:
+                report["unreachable"] += 1
                 continue
             if hop and hop[0] == stitched[-1]:
                 stitched.extend(hop[1:])
@@ -374,6 +421,8 @@ def closed_walk(
                 stitched.extend(hop)
             cur = b
             reached += 1
+            if b != depot:
+                report["visited"] += 1
         if stitched[0] != stitched[-1]:
             try:
                 hop = legal_path(stitched[-1], stitched[0], passable, graph=graph, padded=padded)
@@ -400,8 +449,9 @@ def write_route_geojson(
     *,
     start: tuple[float, float] | None = None,
     role: str = "inspector",
+    targets: dict | None = None,
 ) -> None:
-    """Write one LineString in EPSG:32635 with planar length_m."""
+    """Write one LineString in EPSG:32635 with planar length_m (and target counts if known)."""
     length = 0.0
     for a, b in zip(coords_32635, coords_32635[1:]):
         length += _dist(a, b)
@@ -422,6 +472,7 @@ def write_route_geojson(
                     "start_x": float(start_xy[0]),
                     "start_y": float(start_xy[1]),
                     "role": role,
+                    **({f"targets_{k}": v for k, v in targets.items()} if targets else {}),
                 },
                 "geometry": {
                     "type": "LineString",

@@ -9,7 +9,7 @@ from xml.sax.saxutils import escape
 
 from .tiles import parse_tile_name
 
-MAX_ZIP_BYTES = 90 * 1024 * 1024
+MAX_ZIP_BYTES = 90_000_000  # official cap is 90 MB; decimal, not MiB
 _PART_GLOB = "siret3_challenge_tiles_part*of5.zip"
 
 
