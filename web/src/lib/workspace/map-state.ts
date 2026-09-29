@@ -504,7 +504,7 @@ export function buildMapCatalog(input: {
       const pieces = anchors.get(row.id);
       return {
         id: row.id,
-        block: row.block,
+        block: row.block ?? "",
         row: row.row,
         structure: row.structure,
         at: pieces ? centroid(pieces) : null,
