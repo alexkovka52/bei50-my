@@ -359,7 +359,7 @@ run_remote "docker ps --filter name=${CONTAINER}"
 
 echo "== upload =="
 run_remote "mkdir -p ${REMOTE_RELEASES}/${REL}"
-run_rsync -az -e "$RSYNC_RSH" "$stage/" "${SSH_HOST}:${REMOTE_RELEASES}/${REL}/"
+run_rsync -az --chmod=D755,F644 --no-owner --no-group -e "$RSYNC_RSH" "$stage/" "${SSH_HOST}:${REMOTE_RELEASES}/${REL}/"
 
 echo "== swap =="
 if [[ "$DRY_RUN" != "1" ]]; then
