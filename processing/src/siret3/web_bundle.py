@@ -230,20 +230,25 @@ def _remap(items: list[ProjectedPoly]) -> dict[str, float]:
     assigned: dict[tuple, str] = {}
     taken: set[str] = set()
     synth: dict[str | None, int] = defaultdict(int)
+    # Numbers already printed on a row in this vineyard. Synthetic ids must not reuse them.
+    used_nums: dict[str | None, set[int]] = defaultdict(set)
+    for item in items:
+        if item.kind != "row":
+            continue
+        parsed = _row_number(item.row_id)
+        if parsed is not None:
+            used_nums[item.vineyard_id].add(parsed)
 
     def claim(old: str | None, new: str | None, num: int) -> str:
         key = (old, num)
         if key in assigned:
             return assigned[key]
-        if new:
-            rid = f"{new}-R{num:03d}"
-        else:
-            base = f"X-R{num:03d}"
-            rid = base
-            n = 2
-            while rid in taken:
-                rid = f"{base}-{n}"
-                n += 1
+        base = f"{new}-R{num:03d}" if new else f"X-R{num:03d}"
+        rid = base
+        n = 2
+        while rid in taken:
+            rid = f"{base}-{n}"
+            n += 1
         assigned[key] = rid
         taken.add(rid)
         return rid
@@ -255,8 +260,12 @@ def _remap(items: list[ProjectedPoly]) -> dict[str, float]:
         item.vineyard_id = new if new else (f"F:{old}" if old else None)
         num = _row_number(item.row_id)
         if item.kind == "row" and num is None:
-            synth[old] += 1
-            num = synth[old]
+            while True:
+                synth[old] += 1
+                num = synth[old]
+                if num not in used_nums[old]:
+                    break
+            used_nums[old].add(num)
         if num is None:
             continue
         if item.kind == "row" or item.row_id:
@@ -793,7 +802,7 @@ def _layer_rows(rows: list[ProjectedPoly]) -> list[dict]:
 def _layer_interrows(interrows: list[ProjectedPoly]) -> list[dict]:
     features = []
     for item in interrows:
-        cover = item.interrow_cover if item.interrow_cover in COVER_KEYS else None
+        cover = _cover_key(item.interrow_cover)
         feat = _feature(
             {"block": item.vineyard_id, "cover": cover},
             _project(_simplify(_geometry(item), INTERROW_SIMPLIFY_M)),
@@ -829,9 +838,35 @@ def _start_ll() -> list[float]:
     return [_q(lon, COORD_DIGITS), _q(lat, COORD_DIGITS)]
 
 
+def _purge_stale_outputs(out: Path, produced: set[str]) -> None:
+    """Drop route/layer files this bundle no longer writes.
+
+    Only `routes/*.geojson`, `layers/*.geojson`, and `layers.pmtiles` inside
+    `out`. Other names in those directories are left alone.
+    """
+    for folder, pattern in (("routes", "*.geojson"), ("layers", "*.geojson")):
+        directory = out / folder
+        if not directory.is_dir():
+            continue
+        for path in directory.glob(pattern):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(out).as_posix()
+            if rel not in produced:
+                path.unlink()
+    pmtiles = out / "layers.pmtiles"
+    if pmtiles.is_file() and "layers.pmtiles" not in produced:
+        pmtiles.unlink()
+
+
 def write_bundle(bundle: dict[str, object], out_dir) -> list[Path]:
-    """Write compact UTF-8 JSON. Creates routes/ and layers/."""
+    """Write compact UTF-8 JSON. Creates routes/ and layers/.
+
+    Removes route GeoJSON, layer GeoJSON, and `layers.pmtiles` left by an
+    earlier run when this bundle does not produce them.
+    """
     out = Path(out_dir)
+    _purge_stale_outputs(out, {Path(rel).as_posix() for rel in bundle})
     (out / "routes").mkdir(parents=True, exist_ok=True)
     (out / "layers").mkdir(parents=True, exist_ok=True)
     written: list[Path] = []

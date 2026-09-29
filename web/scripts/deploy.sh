@@ -64,10 +64,12 @@ run_remote() {
     for opt in "${SSH_OPTS[@]}"; do
       printf ' %q' "$opt"
     done
-    printf ' %q -- %s\n' "$SSH_HOST" "$1"
+    printf ' %q %s\n' "$SSH_HOST" "$1"
     return 0
   fi
-  ssh "${SSH_OPTS[@]}" "$SSH_HOST" -- "$1"
+  # Command text is built on this machine; client-side expansion is intentional.
+  # shellcheck disable=SC2029
+  ssh "${SSH_OPTS[@]}" "$SSH_HOST" "$1"
 }
 
 run_remote_script() {

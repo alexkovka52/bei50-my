@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Onest } from "next/font/google";
 import type { CSSProperties } from "react";
+import { asset } from "@/lib/base-path";
 import { MOTION_VARS } from "@/lib/motion";
 import "./globals.css";
 
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
   },
   description: "Aerial vineyard intelligence: every row, every gap, every walk.",
   applicationName: "Dementra",
-  manifest: "/site.webmanifest",
+  manifest: asset("/site.webmanifest"),
 };
 
 export const viewport: Viewport = {

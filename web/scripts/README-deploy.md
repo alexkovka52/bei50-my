@@ -56,9 +56,17 @@ pass it. nginx must already serve `/tiles/` (next section) or the probe 404s.
 
 ## nginx `/tiles/`
 
-`deploy/nginx/dementra-tiles.conf` is an include for the TLS server block:
-`location /tiles/` aliases `/opt/dementra-tiles/`, and gzip covers JSON and
-GeoJSON from the proxied app.
+`deploy/nginx/dementra-tiles.conf` is an include for the TLS server block.
+`location /tiles/` aliases `/opt/dementra-tiles/` (both with a trailing slash),
+so `/tiles/ortho/...` is `/opt/dementra-tiles/ortho/...`. There is no
+`try_files`: with `alias`, `try_files` looks up `/opt/dementra-tiles/tiles/...`
+and 404s every tile.
+
+The snippet turns on `gzip` and `gzip_proxied` and does not set `gzip_types`.
+A `gzip_types` line in this server block would replace the list inherited from
+`http`, and CSS and JS for the whole vhost would stop being compressed. To gzip
+the JSON and GeoJSON the app serves, add `application/json` and
+`application/geo+json` to the `gzip_types` list in the `http` block.
 
 ```bash
 web/scripts/install_nginx_tiles.sh --dry-run
