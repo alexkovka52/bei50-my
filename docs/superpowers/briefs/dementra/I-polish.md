@@ -27,3 +27,11 @@ under `web/src` and `web/README.md` for this task. Do NOT edit `web/package.json
    scripts), replacing the old viewer README.
 8. `npm run lint`, `npm test`, `npm run build` pass. Commit (`Co-Authored-By: Grok 4.7 <noreply@x.ai>`).
    Report every fix with before/after screenshot paths.
+
+## Also fix (found during Layer 2 integration)
+9. Overview status copy must be true: routes now carry `targets_total`/`targets_visited` (and summary
+   `walks.*.stops`). Say "One inspector walk visits <visited> of them: <km>, about <duration>." when visited
+   < total, "visits all of them" only when visited == total, and "The inspector walk covers <km>, about
+   <duration>." when the counts are null. Same rule for any walk copy on `/walks` and `/map`.
+10. Top bar at ≤700px: the search is fixed `w-[300px]` and clips beside the rail at 390px; make it
+    `w-full max-w-[300px] min-w-0` (or collapse to an icon button that opens a search field) on small screens.
