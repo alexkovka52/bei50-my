@@ -20,6 +20,7 @@ const eslintConfig = [
       "next-env.d.ts",
       "public/maplibre-gl*.mjs",
       "playwright-report/**",
+      ".deploy/**",
       "test-results/**",
     ],
   },
