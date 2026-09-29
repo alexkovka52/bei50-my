@@ -131,7 +131,7 @@ else
   echo "rsync --delete is off (pass --delete to remove remote tiles that are not local)"
 fi
 
-rsync_args=(-az --chmod=D755,F644 --no-owner --no-group -e "$RSYNC_RSH")
+rsync_args=(-az --no-owner --no-group -e "$RSYNC_RSH")
 if [[ "$DELETE" == "1" ]]; then
   rsync_args+=(--delete)
 fi
@@ -148,6 +148,7 @@ fi
 
 echo "== upload =="
 run_remote "mkdir -p ${REMOTE_TILES}"
+[ "$DRY_RUN" = 1 ] || chmod -R u+rwX,go+rX "$TILES"  # GDAL writes 0600; nginx needs world-readable
 run_rsync "${rsync_args[@]}" "$TILES/" "${SSH_HOST}:${REMOTE_TILES}/"
 
 if [[ "$missing" == "1" ]]; then
