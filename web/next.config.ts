@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: __dirname,
   // Imagery comes from pre-built tiles; skipping the optimizer keeps sharp/libvips out of the request path.
   images: { unoptimized: true },
+  // Dev only: proxy /tiles/* to a local static server (nginx serves /tiles/ in production).
+  async rewrites() {
+    const origin = process.env.TILES_DEV_ORIGIN;
+    return origin ? [{ source: "/tiles/:path*", destination: `${origin}/:path*` }] : [];
+  },
 };
 
 export default nextConfig;
