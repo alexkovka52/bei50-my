@@ -30,10 +30,11 @@ function counted(value: number | null): value is number {
  */
 export function walkSentence(coverage: WalkCoverage): string {
   const role = coverage.role === "farmer" ? "farmer" : "inspector";
-  const tail = `${walkKm(coverage.lengthM)}, about ${formatDuration(coverage.lengthM)}${stopSuffix(coverage.stops)}.`;
+  const tail = `${walkKm(coverage.lengthM)}, about ${formatDuration(coverage.lengthM)}.`;
   if (!counted(coverage.visited) || !counted(coverage.total)) {
+    // Without visit counts the stop count is the only coverage figure worth giving.
     const name = role === "farmer" ? "The farmer walk" : "The inspector walk";
-    return `${name} covers ${tail}`;
+    return `${name} covers ${tail.slice(0, -1)}${stopSuffix(coverage.stops)}.`;
   }
   if (coverage.visited === coverage.total) return `One ${role} walk visits all of them: ${tail}`;
   return `One ${role} walk visits ${formatInt(coverage.visited)} of them: ${tail}`;

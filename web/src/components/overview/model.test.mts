@@ -70,7 +70,7 @@ test("status copy pluralises a single gap, item, block and stop", () => {
   assert.equal(statusDetail(data), "The inspector walk covers 2.00 km, about 30 min, 1 stop.");
   assert.equal(
     statusDetail(data, { visited: 1, total: 4 }),
-    "One inspector walk visits 1 of them: 2.00 km, about 30 min, 1 stop.",
+    "One inspector walk visits 1 of them: 2.00 km, about 30 min.",
   );
 });
 

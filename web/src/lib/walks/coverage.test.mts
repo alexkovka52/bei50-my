@@ -18,7 +18,7 @@ test("walk copy matches how many targets the route actually reaches", () => {
   assert.equal(walkSentence({ ...base, visited: 83, total: null }), "The inspector walk covers 7.99 km, about 2 h.");
   assert.equal(
     walkSentence({ role: "farmer", lengthM: 2000, stops: 1, visited: 3, total: 4 }),
-    "One farmer walk visits 3 of them: 2.00 km, about 30 min, 1 stop.",
+    "One farmer walk visits 3 of them: 2.00 km, about 30 min.",
   );
   assert.equal(
     walkSentence({ role: "inspector", lengthM: 2000, stops: 2, visited: null, total: null }),
