@@ -193,6 +193,41 @@ def _cmd_marcaj_import(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_split(args: argparse.Namespace) -> int:
+    from collections import Counter
+
+    from .splits import spatial_split, write_split
+
+    images = collect_cvat_images(Path(args.export))
+    split = spatial_split(images, block=args.block, val_frac=args.val, test_frac=args.test, seed=args.seed)
+    write_split(split, Path(args.out), source=str(args.export), block=args.block, seed=args.seed)
+    print(f"split {dict(Counter(split.values()))} -> {args.out}")
+    return 0
+
+
+def _cmd_eval(args: argparse.Namespace) -> int:
+    from .evaluate import evaluate
+    from .splits import load_split
+
+    images = collect_cvat_images(Path(args.gt))
+    rep = evaluate(
+        images,
+        load_split(Path(args.split)),
+        args.subset,
+        plants_dir=Path(args.plants) if args.plants else None,
+        waste_dir=Path(args.waste) if args.waste else None,
+        semseg_dir=Path(args.semseg) if args.semseg else None,
+        iou=args.iou,
+        min_score=args.min_score,
+    )
+    short = {k: v for k, v in rep.items() if k != "plants_per_tile"}
+    print(json.dumps(short, indent=1))
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(json.dumps(rep, indent=1), encoding="utf-8")
+    return 0
+
+
 def _cmd_web_layers(args: argparse.Namespace) -> int:
     written = write_web_layers(
         layers=Path(args.layers) if args.layers else None,
@@ -345,6 +380,27 @@ def main(argv: list[str] | None = None) -> int:
     mi.add_argument("--tiles", default="data/tiles")
     mi.add_argument("--out", default="data/marcaj_32635.geojson")
     mi.set_defaults(func=_cmd_marcaj_import)
+
+    sp = sub.add_parser("split", help="Spatial train/val/test split of a Marcaj export by tile blocks")
+    sp.add_argument("export", help="Marcaj CVAT ZIP / XML / folder")
+    sp.add_argument("--out", default="data/splits/siret3_split.json")
+    sp.add_argument("--block", type=int, default=4)
+    sp.add_argument("--val", type=float, default=0.15)
+    sp.add_argument("--test", type=float, default=0.10)
+    sp.add_argument("--seed", type=int, default=0)
+    sp.set_defaults(func=_cmd_split)
+
+    ev = sub.add_parser("eval", help="Score per-tile pixel predictions against the Marcaj ground truth")
+    ev.add_argument("--gt", default="data/marcaj_export/project37/annotations.xml")
+    ev.add_argument("--split", default="data/splits/siret3_split.json")
+    ev.add_argument("--subset", default="test", choices=["train", "val", "test"])
+    ev.add_argument("--plants", help="folder of per-tile plant GeoJSON (pixel space)")
+    ev.add_argument("--waste", help="folder of per-tile waste GeoJSON (pixel space)")
+    ev.add_argument("--semseg", help="folder of per-tile row / inter-row GeoJSON from infer_semseg.py")
+    ev.add_argument("--iou", type=float, default=0.5)
+    ev.add_argument("--min-score", type=float, default=0.0)
+    ev.add_argument("--out")
+    ev.set_defaults(func=_cmd_eval)
 
     wl = sub.add_parser("web-layers", help="Reproject 32635 layers to WGS84 for MapLibre")
     wl.add_argument("--layers", default=None, help="Marcaj 32635 FeatureCollection")

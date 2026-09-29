@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .crs import from_work_xy, transformer
 from .cvat11 import CvatImage, CvatShape
-from .cvat_parse import parse_cvat11, parse_cvat_zip
+from .cvat_parse import _shape_key, parse_cvat11, parse_cvat_zip
 from .example_yolo import canonical_tile_name
 from .georef import pixels_to_xy_once
 from .ids import ProjectedPoly
@@ -109,23 +109,25 @@ def _images_from_json(data) -> list[CvatImage]:
 
 
 def _merge_images(groups: list[list[CvatImage]]) -> list[CvatImage]:
+    """Merge exports by canonical tile name; identical shapes seen twice are kept once."""
     by_name: dict[str, CvatImage] = {}
+    seen: dict[str, set] = {}
     for images in groups:
         for im in images:
-            existing = by_name.get(im.name)
+            name = canonical_tile_name(im.name)
+            existing = by_name.get(name)
             if existing is None:
-                by_name[im.name] = CvatImage(
-                    name=im.name,
-                    width=im.width,
-                    height=im.height,
-                    shapes=list(im.shapes),
-                )
-            else:
-                existing.shapes.extend(im.shapes)
-                if im.width:
-                    existing.width = im.width
-                if im.height:
-                    existing.height = im.height
+                existing = by_name[name] = CvatImage(name=name, width=im.width, height=im.height, shapes=[])
+                seen[name] = set()
+            for shape in im.shapes:
+                key = _shape_key(shape)
+                if key not in seen[name]:
+                    seen[name].add(key)
+                    existing.shapes.append(shape)
+            if im.width:
+                existing.width = im.width
+            if im.height:
+                existing.height = im.height
     return [by_name[k] for k in sorted(by_name)]
 
 
@@ -133,15 +135,19 @@ def collect_cvat_images(path: Path) -> list[CvatImage]:
     path = Path(path)
     if path.is_dir():
         files = sorted(path.rglob("*"))
-        groups = [collect_cvat_images(p) for p in files if p.suffix.lower() in {".zip", ".xml", ".json"}]
+        groups = [
+            collect_cvat_images(p)
+            for p in files
+            if p.suffix.lower() in {".zip", ".xml", ".json"} and p.name.lower() != "metadata.json"
+        ]
         return _merge_images(groups)
     suffix = path.suffix.lower()
     if suffix == ".zip":
-        return parse_cvat_zip(path)
+        return _merge_images([parse_cvat_zip(path)])
     if suffix == ".xml":
-        return parse_cvat11(path.read_text(encoding="utf-8"))
+        return _merge_images([parse_cvat11(path.read_text(encoding="utf-8"))])
     if suffix == ".json":
-        return _images_from_json(json.loads(path.read_text(encoding="utf-8")))
+        return _merge_images([_images_from_json(json.loads(path.read_text(encoding="utf-8")))])
     raise ValueError(f"unsupported Marcaj export: {path}")
 
 

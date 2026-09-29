@@ -188,3 +188,24 @@ def test_web_layers_reprojects_utm35_to_lonlat():
     assert 28.70 < lon < 28.72
     assert 47.12 < lat < 47.13
     assert "crs" not in out or "4326" in str(out.get("crs", "")).lower()
+
+
+def test_collect_folder_skips_metadata_and_dedupes_prefixed_names(tmp_path: Path):
+    import json
+    import zipfile
+
+    xml = _xml().replace('name="siret3_r001_c001.tif"', 'name="1638_siret3_r001_c001.tif"')
+    export = tmp_path / "export"
+    export.mkdir()
+    (export / "metadata.json").write_text(
+        json.dumps({"project": {"id": 37}, "warnings": ["x"]}), encoding="utf-8"
+    )
+    (export / "annotations.xml").write_text(xml, encoding="utf-8")
+    with zipfile.ZipFile(export / "project37_cvat.zip", "w") as zf:
+        zf.writestr("annotations.xml", xml)
+        zf.writestr("metadata.json", "{}")
+    images = collect_cvat_images(export)
+    names = [im.name for im in images]
+    assert names == ["siret3_r001_c001.tif", "siret3_r001_c002.tif"]
+    labels = sorted(s.label for s in images[0].shapes)
+    assert labels == ["interrow_area", "row", "vineyard", "waste"]

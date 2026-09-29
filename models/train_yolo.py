@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Fine-tune Ultralytics YOLO on public data only (Riseholme / DroneWaste).
+"""Fine-tune Ultralytics YOLO (public data, or the Marcaj ground truth after the event).
 
 Default lock (docs/sota-research.md): YOLO11m-seg for canopies, YOLO12 detect for waste.
-YOLO26 is an optional A/B. Do not train on Sireț3 labels drawn outside Marcaj.
+YOLO26 is an optional A/B. Sireț3 labels come only from the Marcaj export.
 """
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+from datetime import date
 from pathlib import Path
 
 
@@ -94,9 +95,8 @@ def main() -> int:
     if args.lr0 is not None:
         train_kw["lr0"] = args.lr0
     model.train(**train_kw)
-    dest = Path(args.copy_best) if args.copy_best else Path("models/weights") / (
-        "vineyard.pt" if args.task == "segment" else "waste.pt"
-    )
+    # Never overwrite the tracked vineyard.pt / waste.pt by default.
+    dest = Path(args.copy_best) if args.copy_best else Path("models/weights") / f"{name}_{date.today():%Y%m%d}.pt"
     dest.parent.mkdir(parents=True, exist_ok=True)
     best = None
     trainer = getattr(model, "trainer", None)
