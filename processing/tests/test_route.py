@@ -168,3 +168,24 @@ def test_closed_walk_serves_targets_within_reach():
     report: dict = {}
     closed_walk([(20.0, 2.0), (60.0, 14.0), (50.0, 40.0)], (1.0, 2.0), passable=passable, report=report, reach_m=30)
     assert report["off_passable"] == 1 and report["visited"] == 2
+
+
+def test_passable_joins_interrow_islands_through_headlands_not_vines():
+    from shapely.geometry import Point
+
+    from siret3.ids import ProjectedPoly
+    from siret3.route import passable_from_items
+
+    def rect(x0, y0, x1, y1):
+        return [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)]
+
+    items = [
+        ProjectedPoly(kind="interrow_area", coords=rect(0, 0.5, 20, 2.0), tile="A"),
+        ProjectedPoly(kind="interrow_area", coords=rect(0, 3.0, 20, 4.5), tile="A"),
+        ProjectedPoly(kind="row", coords=[(0, 2.5), (20, 2.5)], tile="A"),
+        ProjectedPoly(kind="vineyard", coords=rect(5, 2.1, 6, 2.9), tile="A"),
+    ]
+    walk = passable_from_items(items)
+    assert walk.geom_type == "Polygon"  # one connected area via the row ends
+    assert not walk.contains(Point(5.5, 2.5))  # never through a vine
+    assert walk.contains(Point(21.0, 2.5))  # headland past the last vine
