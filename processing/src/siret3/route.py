@@ -81,20 +81,19 @@ def passable_union(
     return ok
 
 
-def passable_from_items(items, *, block_reach_m: float = 1.8) -> Polygon:
-    """Walkable ground: inter-rows ∪ passages ∪ (block around the rows − vine canopies) − forbidden.
+def passable_from_items(items, *, headland_m: float = 2.5) -> Polygon:
+    """Walkable ground: inter-rows ∪ passages ∪ headland discs at row ends − forbidden.
 
-    Inter-rows run canopy edge to canopy edge and stop at the last vine, so on their own they are islands.
-    The row footprint (rows buffered with round ends) adds the headlands and lets a walker step through
-    planting gaps, while the canopy polygons keep the walk out of the vines themselves.
+    Inter-rows run canopy edge to canopy edge and stop at the last vine, so on their own they are
+    islands. A disc at each end of every row joins neighbouring inter-rows across the headland (rows
+    are ~2.5 m apart) without opening a path through the vines themselves.
     """
     goods = []
     bads = []
-    rows = []
-    canopies = []
     for p in items:
-        if p.kind == "row" and len(p.coords) >= 2:
-            rows.append(LineString(p.coords))
+        if p.kind == "row" and len(p.coords) >= 2 and headland_m > 0:
+            goods.append(Point(p.coords[0]).buffer(headland_m, resolution=8))
+            goods.append(Point(p.coords[-1]).buffer(headland_m, resolution=8))
             continue
         holes = (p.extras or {}).get("holes") if getattr(p, "extras", None) else None
         geom = _as_poly(p.coords, holes)
@@ -104,13 +103,6 @@ def passable_from_items(items, *, block_reach_m: float = 1.8) -> Polygon:
             goods.append(geom)
         elif p.kind == "forbidden":
             bads.append(geom)
-        elif p.kind == "vineyard":
-            canopies.append(geom)
-    if rows and block_reach_m > 0:
-        block = unary_union([r.buffer(block_reach_m) for r in rows])
-        if canopies:
-            block = block.difference(unary_union(canopies))
-        goods.append(block)
     if not goods:
         return Polygon()
     ok = unary_union(goods)
