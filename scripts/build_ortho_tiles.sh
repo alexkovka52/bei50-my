@@ -124,8 +124,9 @@ gdalwarp \
 # --tiledriver=WEBP --webp-quality=82 --processes=$PROCS --exclude`.
 # GDAL 3.13's non-legacy path ignores --processes (it reads a different
 # default stuck at 1) and writes fully opaque WebP tiles without an alpha
-# band. MapLibre needs RGBA, including on the vineyard interior, so the
-# entry point is called with those two corrected.
+# band. Edge tiles need that alpha for the transparent border, so the entry
+# point is called with both corrected. Interior tiles come out opaque RGB
+# (libwebp drops an all-255 alpha), which MapLibre renders the same way.
 PROCS="$PROCS" ZOOMS="$ZOOMS" VRT="$vrt" OUT="$OUT" python3 - <<'PY'
 import os
 import sys
@@ -176,64 +177,6 @@ sys.argv = [
     os.environ["OUT"],
 ]
 raise SystemExit(gdal2tiles.main(sys.argv, called_from_main=True))
-PY
-
-# Average resampling writes a fully opaque alpha of 255, and libwebp then
-# drops that chunk, so interior tiles come out RGB. Rewrite those as lossless
-# RGBA with the same colour samples. One corner alpha of 254 keeps the chunk;
-# the other pixels stay 255.
-OUT="$OUT" PROCS="$PROCS" python3 - <<'PY'
-import multiprocessing as mp
-import os
-from pathlib import Path
-
-out = Path(os.environ["OUT"])
-procs = max(1, int(os.environ["PROCS"]))
-
-
-def promote(path):
-    from osgeo import gdal
-
-    gdal.UseExceptions()
-    path = str(path)
-    with open(path, "rb") as handle:
-        header = handle.read(21)
-    if len(header) >= 21 and header[12:16] == b"VP8X" and header[20] & 0x10:
-        return 0
-    src = gdal.Open(path)
-    width, height = src.RasterXSize, src.RasterYSize
-    mem = gdal.GetDriverByName("MEM").Create("", width, height, 4, gdal.GDT_Byte)
-    for index, color in (
-        (1, gdal.GCI_RedBand),
-        (2, gdal.GCI_GreenBand),
-        (3, gdal.GCI_BlueBand),
-    ):
-        band = mem.GetRasterBand(index)
-        band.WriteRaster(0, 0, width, height, src.GetRasterBand(index).ReadRaster())
-        band.SetColorInterpretation(color)
-    alpha = mem.GetRasterBand(4)
-    alpha.Fill(255)
-    alpha.WriteRaster(0, 0, 1, 1, b"\xfe")
-    alpha.SetColorInterpretation(gdal.GCI_AlphaBand)
-    src = None
-    tmp = path + ".rgba.tmp.webp"
-    gdal.GetDriverByName("WEBP").CreateCopy(tmp, mem, options=["LOSSLESS=YES"])
-    mem = None
-    os.replace(tmp, path)
-    return 1
-
-
-paths = [str(path) for path in out.rglob("*.webp")]
-if procs == 1 or len(paths) < 2:
-    rewritten = sum(promote(path) for path in paths)
-else:
-    try:
-        mp.set_start_method("fork")
-    except RuntimeError:
-        pass
-    with mp.Pool(procs) as pool:
-        rewritten = sum(pool.map(promote, paths, chunksize=16))
-print(f"rgba_rewrite {rewritten} of {len(paths)}")
 PY
 
 SRC="$SRC" OUT="$OUT" MINZOOM="$MINZOOM" MAXZOOM="$MAXZOOM" CENTER_Z="$CENTER_Z" \
