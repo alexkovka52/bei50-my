@@ -29,6 +29,8 @@ export function WalkStudio({
   start,
   center,
   stops,
+  targetsVisited,
+  targetsTotal,
   tasks,
   coordinates,
   lengthM,
@@ -39,6 +41,8 @@ export function WalkStudio({
   start: LonLat;
   center: LonLat;
   stops: number;
+  targetsVisited: number | null;
+  targetsTotal: number | null;
   tasks: Array<Task & { distanceM: number }>;
   coordinates: LonLat[];
   lengthM: number;
@@ -109,8 +113,9 @@ export function WalkStudio({
       <div className="hidden h-full shrink-0 min-[481px]:flex">
         <Rail />
       </div>
-      <div
-        id="walk-panel"
+      <main
+        id="main"
+        tabIndex={-1}
         className="relative flex h-full min-h-0 min-w-0 flex-1 flex-col min-[481px]:pt-6 min-[481px]:pr-8 min-[481px]:pb-8 min-[481px]:pl-2 min-[1024px]:flex-row min-[1024px]:gap-[22px]"
       >
         <h1 className="sr-only min-[481px]:hidden">Walks</h1>
@@ -119,7 +124,15 @@ export function WalkStudio({
             <h1 className="m-0 font-display text-[40px] leading-none font-bold tracking-[-1px]">Walks</h1>
             <WalkTabs walk={walk} block={block} />
           </div>
-          <WalkSummary walk={walk} lengthM={path.lengthM} stops={stops} coordinates={coordinates} tasks={scoped} />
+          <WalkSummary
+            walk={walk}
+            lengthM={path.lengthM}
+            stops={stops}
+            visited={targetsVisited}
+            total={targetsTotal}
+            coordinates={coordinates}
+            tasks={scoped}
+          />
           <TaskList
             tasks={scoped}
             done={done}
@@ -196,7 +209,7 @@ export function WalkStudio({
             onSkip={skipStop}
           />
         </div>
-      </div>
+      </main>
     </div>
   );
 }

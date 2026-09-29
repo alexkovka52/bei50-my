@@ -44,11 +44,9 @@ function frameBlock(map: MlMap, block: Block) {
 type BlockMapProps = {
   block: Block;
   className?: string;
-  /** Short map in the blocks list. Keeps the attribution to a single line. */
-  preview?: boolean;
 };
 
-export function BlockMap({ block, className, preview = false }: BlockMapProps) {
+export function BlockMap({ block, className }: BlockMapProps) {
   const mapRef = useRef<MlMap | null>(null);
   const blockRef = useRef(block);
   blockRef.current = block;
@@ -61,7 +59,7 @@ export function BlockMap({ block, className, preview = false }: BlockMapProps) {
   }, [block]);
 
   return (
-    <div className={cn("bg-dew", styles.frame, preview && styles.preview, className)}>
+    <div className={cn("bg-dew", styles.frame, className)}>
       <MapView
         center={block.centroid}
         zoom={16}

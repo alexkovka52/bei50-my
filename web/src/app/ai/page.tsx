@@ -5,7 +5,10 @@ import { AppShell } from "@/components/shell/AppShell";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { getModel, getSummary } from "@/lib/data/server";
 
-export const metadata: Metadata = { title: "AI" };
+export const metadata: Metadata = {
+  title: "AI",
+  description: "How Dementra reads a vineyard: the training pipeline, dataset and held-out scores.",
+};
 
 export default async function AiPage() {
   const [model, summary] = await Promise.all([getModel(), getSummary()]);

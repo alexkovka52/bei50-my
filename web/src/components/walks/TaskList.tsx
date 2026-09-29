@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { formatInt } from "@/lib/data/format";
 import type { Task } from "@/lib/data/types";
 import { kindCounts, taskHeading, taskNote, type KindFilter } from "@/lib/walks/tasks";
@@ -65,14 +65,32 @@ export function TaskList({
           </h2>
           <p className="m-0 mt-1 text-[13px] text-ink-muted tabular-nums">{formatInt(doneCount)} done</p>
         </div>
-        <div role="group" aria-label="Filter" className="flex flex-wrap gap-1.5">
+        <div
+          role="radiogroup"
+          aria-label="Filter"
+          className="flex flex-wrap gap-1.5"
+          onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+            const key = event.key;
+            if (key !== "ArrowRight" && key !== "ArrowLeft" && key !== "Home" && key !== "End") return;
+            event.preventDefault();
+            const index = Math.max(0, filters.findIndex((filter) => filter.id === activeKind));
+            const nextIndex =
+              key === "Home" ? 0 : key === "End" ? filters.length - 1 : key === "ArrowRight" ? (index + 1) % filters.length : (index - 1 + filters.length) % filters.length;
+            const next = filters[nextIndex];
+            if (!next) return;
+            setKind(next.id);
+            event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]')[nextIndex]?.focus();
+          }}
+        >
           {filters.map((filter) => {
             const selected = filter.id === activeKind;
             return (
               <button
                 key={filter.id}
                 type="button"
-                aria-pressed={selected}
+                role="radio"
+                aria-checked={selected}
+                tabIndex={selected ? 0 : -1}
                 onClick={() => setKind(filter.id)}
                 className={cn(
                   "inline-flex min-h-11 items-center rounded-pill px-3 text-[13px]",

@@ -19,19 +19,6 @@ export function PreviewCard({
 
   return (
     <section aria-label="3D map preview" className="overview-preview relative isolate h-[560px] overflow-hidden rounded-[32px] bg-forest min-[1201px]:h-full min-[1201px]:min-h-[680px]">
-      <style>{`
-        .overview-preview .maplibregl-ctrl-bottom-right { left: 0; right: 0; display: flex; }
-        .overview-preview .maplibregl-ctrl-attrib,
-        .overview-preview .maplibregl-ctrl-attrib.maplibregl-compact,
-        .overview-preview .maplibregl-ctrl-attrib.maplibregl-compact-show {
-          float: none; flex: 1; max-width: none; margin: 0 !important; border-radius: 0;
-          background: rgba(15, 42, 29, 0.88) !important; color: #C9D8C0 !important;
-          padding: 4px 28px 4px 16px !important; font-size: 11px; line-height: 1.35;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .overview-preview .maplibregl-ctrl-attrib a { color: #E3EED4 !important; }
-        .overview-preview .maplibregl-ctrl-attrib-button { background-color: transparent !important; }
-      `}</style>
       <ForestPlaceholder />
       <PreviewMap id={block?.id ?? null} center={frame.centroid} bbox={frame.bbox} zoom={frameZoom(frame.bbox)} />
       <div

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { formatDuration, formatInt } from "@/lib/data/format";
 import type { LonLat } from "@/lib/data/types";
+import { walkSentence } from "@/lib/walks/coverage";
 import { formatWalkKm } from "@/lib/walks/format";
 import { buildGpx } from "@/lib/walks/gpx";
 import { taskHeading, taskNote, type WalkRole } from "@/lib/walks/tasks";
@@ -26,12 +27,16 @@ export function WalkSummary({
   walk,
   lengthM,
   stops,
+  visited,
+  total,
   coordinates,
   tasks,
 }: {
   walk: WalkRole;
   lengthM: number;
   stops: number;
+  visited: number | null;
+  total: number | null;
   coordinates: LonLat[];
   tasks: WaypointTask[];
 }) {
@@ -94,6 +99,9 @@ export function WalkSummary({
           </div>
         ))}
       </div>
+      <p className="m-0 text-sm leading-normal text-ink-muted">
+        {walkSentence({ role: walk, lengthM, stops, visited, total })}
+      </p>
       <p className="m-0 text-sm leading-normal text-ink-muted">{ROUTE_NOTE}</p>
       <div className="flex gap-2.5">
         <Button className="flex-1" onClick={sendToPhone}>
@@ -104,7 +112,7 @@ export function WalkSummary({
         </Button>
       </div>
       {toast ? (
-        <p role="status" className="m-0 text-sm break-all text-moss">
+        <p role="status" aria-live="polite" className="m-0 text-sm break-all text-moss">
           {toast.kind === "ok" ? "Link copied" : `Copy this link: ${toast.link}`}
         </p>
       ) : null}

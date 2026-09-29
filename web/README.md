@@ -1,41 +1,56 @@
-# Sireț3 map (`web/`)
+# Dementra
 
-Next.js + MapLibre viewer for the scored demo. **Port 43173**, not 3000.
+Aerial vineyard intelligence for the Sireț3 flight. The Next.js app in `web/` shows the overview, tilted map, inspector and farmer walks, block ranks, a printable report, and how the model reads the vineyard.
+
+Dev server: [http://127.0.0.1:43173](http://127.0.0.1:43173).
+
+## Develop
 
 ```bash
 cd web
-npm install
+npm ci
+printf 'TILES_DEV_ORIGIN=http://127.0.0.1:8787\n' > .env.development.local
 npm run dev
 ```
 
-Open [http://127.0.0.1:43173](http://127.0.0.1:43173).
-
-## Layers
-
-| File | What |
-| --- | --- |
-| `public/layers/sample.geojson` | Synthetic plants (SAMPLE badge). Used until a Marcaj pack has `vineyard` polygons. |
-| `public/layers/layers.geojson` | Packed WGS84: Marcaj canopies/rows/inter-rows/waste plus official forbidden + passages. |
-| `public/layers/route.geojson` | Inspector walk (blue). Display CRS is lon/lat; `length_m` is planar EPSG:32635. |
-| `public/layers/route-farmer.geojson` | Farmer walk (red). |
-| `public/layers/measurements.csv` | Jury CSV. |
-
-After the team exports from Marcaj:
+Imagery is pre-built tiles. In development, `next.config.ts` rewrites `/tiles/*` to `TILES_DEV_ORIGIN`. Start a static server for `dist/tiles` from the repo root (skip this if port 8787 is already serving them):
 
 ```bash
-siret3 marcaj-import data/marcaj_export --tiles data/tiles --out data/marcaj_32635.geojson
-siret3 inspect data/marcaj_32635.geojson --out inspections.geojson
-siret3 measurements data/marcaj_32635.geojson --out measurements.csv
-siret3 route data/marcaj_32635.geojson --targets inspections,waste --out route.geojson
-siret3 route data/marcaj_32635.geojson --targets waste --out route_farmer.geojson
-siret3 web-layers --layers data/marcaj_32635.geojson \
-  --inspector route.geojson --farmer route_farmer.geojson \
-  --measurements measurements.csv --inspections inspections.geojson \
-  --forbidden data/challenge/02_route/forbidden.geojson \
-  --passages data/challenge/02_route/passages.geojson \
-  --out-dir web/public/layers
+python3 -m http.server 8787 --bind 127.0.0.1 --directory dist/tiles
 ```
 
-Reload the map. Badge switches from SAMPLE to Marcaj.
+Production nginx serves `/tiles/` itself. The rewrite is dev-only.
 
-Do **not** merge git branch `frontend` into `main`. That app is a different Next.js tree on :3000.
+`npm run lint`, `npm test`, and `npm run build` are the checks before a deploy.
+
+## Data bundle
+
+Pages read `web/public/data/` (summary, blocks, layers, routes, model). Publish that bundle from the repo root with the processing tools. Do not hand-edit the JSON.
+
+From the repo root, with the processing virtualenv active (`PYTHONPATH` must see `processing/src`):
+
+```bash
+PYTHONPATH=$PWD/processing/src python -m siret3.cli web-bundle \
+  --layers data/gt_32635.geojson \
+  --assemble \
+  --source marcaj-labels \
+  --inspector route.geojson \
+  --farmer route_farmer.geojson \
+  --baseline data/eval/baseline_test.json \
+  --flown-on 2026-09-20 \
+  --out-dir web/public/data
+```
+
+Missing files render an empty state on each route. Null measurements stay "Not measured" or "Pending".
+
+## Deploy
+
+Scripts live in `web/scripts/`. Run them from the repo root or from `web/`. Details, hosts, and rollback are in [scripts/README-deploy.md](scripts/README-deploy.md).
+
+| Script | What it changes |
+| --- | --- |
+| `web/scripts/deploy.sh` | Builds the app and swaps the `siret3-web` container on `dementra.md`. |
+| `web/scripts/deploy_tiles.sh` | Uploads ortho tiles to `/opt/dementra-tiles/ortho/`. |
+| `web/scripts/install_nginx_tiles.sh` | Installs the nginx `/tiles/` snippet for `dementra.md`. |
+
+`--dry-run` prints the remote commands and does not ssh. `deploy.sh --dry-run` still runs `npm ci`, lint, test, and build on this machine.

@@ -48,7 +48,9 @@ export function PlaybackBar({
       </button>
       <div className="flex min-w-[160px] flex-1 flex-col gap-1">
         <div className="flex items-baseline justify-between gap-3 text-sm tabular-nums">
-          <span className="font-semibold text-dew">{valueText}</span>
+          <span className="font-semibold text-dew" aria-live="polite">
+            {valueText}
+          </span>
           <span className="text-mist">{timeLeftLabel(remainingMetres(lengthM, distanceM))}</span>
         </div>
         <ProgressSlider
@@ -72,14 +74,32 @@ export function PlaybackBar({
         <LocateFixed aria-hidden="true" size={18} strokeWidth={1.8} />
         <span className="sr-only">Follow the current position</span>
       </button>
-      <div role="group" aria-label="Playback speed" className="flex gap-1 rounded-pill bg-[rgba(227,238,212,0.08)] p-1">
+      <div
+        role="radiogroup"
+        aria-label="Playback speed"
+        className="flex gap-1 rounded-pill bg-[rgba(227,238,212,0.08)] p-1"
+        onKeyDown={(event) => {
+          const key = event.key;
+          if (key !== "ArrowRight" && key !== "ArrowLeft" && key !== "Home" && key !== "End") return;
+          event.preventDefault();
+          const index = Math.max(0, PLAYBACK_SPEEDS.indexOf(speed));
+          const nextIndex =
+            key === "Home" ? 0 : key === "End" ? PLAYBACK_SPEEDS.length - 1 : key === "ArrowRight" ? (index + 1) % PLAYBACK_SPEEDS.length : (index - 1 + PLAYBACK_SPEEDS.length) % PLAYBACK_SPEEDS.length;
+          const next = PLAYBACK_SPEEDS[nextIndex];
+          if (next == null) return;
+          onSpeed(next);
+          event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]')[nextIndex]?.focus();
+        }}
+      >
         {PLAYBACK_SPEEDS.map((option) => {
           const selected = option === speed;
           return (
             <button
               key={option}
               type="button"
-              aria-pressed={selected}
+              role="radio"
+              aria-checked={selected}
+              tabIndex={selected ? 0 : -1}
               onClick={() => onSpeed(option)}
               className={cn(
                 "inline-flex h-11 min-w-11 items-center justify-center rounded-pill px-3 text-[13px]",

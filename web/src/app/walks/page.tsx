@@ -9,7 +9,10 @@ import { loadWalkRoute } from "@/lib/walks/load-route";
 import { withRouteDistance } from "@/lib/walks/position";
 import { parseBlockParam, parseWalkParam } from "@/lib/walks/tasks";
 
-export const metadata: Metadata = { title: "Walks" };
+export const metadata: Metadata = {
+  title: "Walks",
+  description: "Inspector and farmer walks, with distance, field tasks and playback.",
+};
 
 export default async function WalksPage({
   searchParams,
@@ -47,6 +50,8 @@ export default async function WalksPage({
       start={summary.start}
       center={summary.center}
       stops={summary.walks[walk].stops}
+      targetsVisited={route.targetsVisited}
+      targetsTotal={route.targetsTotal}
       tasks={withRouteDistance(path, tasks)}
       coordinates={route.coordinates}
       lengthM={path.lengthM}

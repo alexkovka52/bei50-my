@@ -19,6 +19,7 @@ type LayersPanelProps = {
   onExaggeration: (value: number) => void;
   onOpacity: (value: number) => void;
   onClose: () => void;
+  note?: string;
 };
 
 const swatch = "inline-block shrink-0";
@@ -34,6 +35,7 @@ export function LayersPanel({
   onExaggeration,
   onOpacity,
   onClose,
+  note,
 }: LayersPanelProps) {
   const rows: Array<{ key: LayerKey; label: string; count: number | null; mark: ReactNode }> = [
     { key: "plants", label: "Plants", count: counts.plants, mark: <span aria-hidden="true" className={cn(swatch, "size-2.5 rounded-[3px] bg-canopy")} /> },
@@ -102,6 +104,7 @@ export function LayersPanel({
           className={cn("h-11 w-full accent-budbreak", focusRing)}
         />
       </label>
+      {note ? <p className="m-0 text-[13px] leading-snug text-mist">{note}</p> : null}
     </div>
   );
 }

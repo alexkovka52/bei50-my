@@ -38,7 +38,7 @@ export function PhoneSheet({
     >
       <div aria-hidden="true" className="mx-auto h-[5px] w-10 shrink-0 rounded-pill bg-lichen" />
       <div className="flex items-baseline justify-between gap-3 text-sm text-ink-muted tabular-nums">
-        <div>{valueText}</div>
+        <div aria-live="polite">{valueText}</div>
         <div>{timeLeftLabel(remainingMetres(lengthM, distanceM))}</div>
       </div>
       <ProgressSlider fraction={fraction} onSeek={onSeek} tone="moss" label="Walk progress" valueText={valueText} />

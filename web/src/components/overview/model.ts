@@ -1,5 +1,6 @@
-import { formatDuration, formatInt, formatPct } from "@/lib/data/format";
+import { formatInt, formatPct } from "@/lib/data/format";
 import type { BBox, Block, CoverCounts, StructureCounts, Summary, Task, VineyardRow } from "@/lib/data/types";
+import { walkSentence } from "@/lib/walks/coverage";
 
 export type NumberStat = {
   label: string;
@@ -54,12 +55,18 @@ export function formatWalkKm(meters: number): string {
   return `${km} km`;
 }
 
-export function statusDetail(summary: Summary): string {
+export function statusDetail(
+  summary: Summary,
+  targets?: { visited: number | null; total: number | null } | null,
+): string {
   const walk = summary.walks.inspector;
-  const km = formatWalkKm(walk.length_m);
-  const duration = formatDuration(walk.length_m);
-  const stops = walk.stops > 0 ? `, ${counted(walk.stops, "stop", "stops")}` : "";
-  return `One inspector walk visits all of them: ${km}, about ${duration}${stops}.`;
+  return walkSentence({
+    role: "inspector",
+    lengthM: walk.length_m,
+    stops: walk.stops,
+    visited: targets?.visited ?? null,
+    total: targets?.total ?? null,
+  });
 }
 
 /** Bare soil as a percent of inter-rows that received a cover class. */

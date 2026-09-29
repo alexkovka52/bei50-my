@@ -23,7 +23,10 @@ export async function generateMetadata({ params }: BlockPageProps): Promise<Meta
   const { id } = await params;
   const blocks = await getBlocks();
   const block = findBlock(blocks ?? [], id);
-  return { title: block ? `Block ${block.id}` : "Block" };
+  return {
+    title: block ? `Block ${block.id}` : "Block",
+    description: block ? `Rows, gaps, waste and cover in block ${block.id}.` : "A vineyard block.",
+  };
 }
 
 export default async function BlockPage({ params }: BlockPageProps) {

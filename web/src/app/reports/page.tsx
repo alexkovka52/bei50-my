@@ -12,7 +12,10 @@ import { describeDownloads, readPublishedFiles } from "./downloads";
 import { measurementTables } from "./measurements";
 import styles from "./print.module.css";
 
-export const metadata: Metadata = { title: "Reports" };
+export const metadata: Metadata = {
+  title: "Reports",
+  description: "Measurements, downloads and a printable summary of the published flight.",
+};
 
 export default async function ReportsPage() {
   const [summary, files] = await Promise.all([getSummary(), readPublishedFiles()]);
@@ -65,7 +68,7 @@ export default async function ReportsPage() {
           <section className={cn("min-w-0 rounded-card bg-paper px-7 py-6", styles.hide)}>
             <h2 className="m-0 text-lg font-semibold">Downloads</h2>
             <p className="mt-1 mb-0 text-sm text-ink-muted">Every file published with this flight.</p>
-            <div className="mt-3 overflow-x-auto">
+            <div className="mt-3 min-w-0 overflow-x-auto">
               <table className="w-full min-w-[420px] border-collapse text-[15px]">
                 <caption className="sr-only">Published data files</caption>
                 <thead>

@@ -10,9 +10,13 @@ import { AppShell } from "@/components/shell/AppShell";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { TopBar } from "@/components/shell/TopBar";
 import { getBlocks, getRows, getSummary, getTasks } from "@/lib/data/server";
+import { loadWalkRoute } from "@/lib/walks/load-route";
 import { loadForecast } from "@/lib/weather/load";
 
-export const metadata: Metadata = { title: "Overview" };
+export const metadata: Metadata = {
+  title: { absolute: "Overview | Dementra" },
+  description: "Planting gaps, waste and the inspector walk for the latest Sireț3 flight.",
+};
 
 export const revalidate = 1800;
 
@@ -29,7 +33,13 @@ export default async function OverviewPage() {
     );
   }
 
-  const [blocks, tasks, rows, weather] = await Promise.all([getBlocks(), getTasks(), getRows(), loadForecast(summary.center)]);
+  const [blocks, tasks, rows, weather, inspector] = await Promise.all([
+    getBlocks(),
+    getTasks(),
+    getRows(),
+    loadForecast(summary.center),
+    loadWalkRoute("inspector"),
+  ]);
   const block = blocks ? blockWithMostGaps(blocks) : null;
   const disrupted = block && rows ? disruptedRowCount(rows, block.id) : null;
 
@@ -38,7 +48,10 @@ export default async function OverviewPage() {
       <TopBar title="Overview" />
       <div className="grid min-h-0 flex-1 content-start grid-cols-1 items-start gap-[22px] min-[1201px]:grid-cols-[minmax(0,1fr)_520px] min-[1201px]:content-stretch min-[1201px]:items-stretch">
         <div className="flex min-w-0 flex-col gap-[22px]">
-          <StatusCard headline={statusHeadline(summary)} detail={statusDetail(summary)} />
+          <StatusCard
+            headline={statusHeadline(summary)}
+            detail={statusDetail(summary, inspector ? { visited: inspector.targetsVisited, total: inspector.targetsTotal } : null)}
+          />
           <NumbersStrip stats={numberStats(summary)} />
           <div className="grid grid-cols-1 items-stretch gap-[22px] min-[701px]:grid-cols-2">
             <WeatherCard forecast={weather} />
