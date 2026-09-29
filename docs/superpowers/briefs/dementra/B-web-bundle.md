@@ -3,8 +3,11 @@
 Read first: `docs/superpowers/specs/2026-09-29-dementra-frontend.md` (section "Data contract" is your
 spec), `AGENTS.md`, and these modules in `processing/src/siret3/`: `assemble.py`, `inspect.py`,
 `marcaj.py` (`to_wgs84_collection`, `write_web_layers`, `_simplify_fc`), `measurements.py`, `cli.py`
-(`_items_from_collection`, `_cmd_assemble`), `crs.py`. Python env: `processing/.venv/bin/python`,
-tests `cd processing && .venv/bin/python -m pytest -q` (all must stay green).
+(`_items_from_collection`, `_cmd_assemble`), `crs.py`. Python env: you are in a git worktree without its own venv. Use the main checkout's interpreter
+`/Users/cristian/Development/gigahack2026/bei50/processing/.venv/bin/python` and ALWAYS put your worktree's source first:
+`export PYTHONPATH=$PWD/processing/src` (the venv has an editable install pointing at the main checkout, so
+without this you would run the wrong code). Tests: `cd processing && PYTHONPATH=src /Users/cristian/Development/gigahack2026/bei50/processing/.venv/bin/python -m pytest -q`
+(all must stay green). CLI: `PYTHONPATH=$PWD/processing/src /Users/cristian/Development/gigahack2026/bei50/processing/.venv/bin/python -m siret3.cli web-bundle …`.
 
 Scope: `processing/src/siret3/web_bundle.py` (new), `processing/src/siret3/cli.py` (new subcommand only),
 `processing/tests/test_web_bundle.py` (new), and the generated `web/public/data/**`. Nothing else.
@@ -50,7 +53,7 @@ Scope: `processing/src/siret3/web_bundle.py` (new), `processing/src/siret3/cli.p
    routes property passthrough.
 4. Generate the real bundle and commit it:
    ```bash
-   processing/.venv/bin/siret3 web-bundle --layers /Users/cristian/Development/gigahack2026/bei50/data/gt_32635.geojson --assemble --source marcaj-labels \
+   PYTHONPATH=$PWD/processing/src /Users/cristian/Development/gigahack2026/bei50/processing/.venv/bin/python -m siret3.cli web-bundle --layers /Users/cristian/Development/gigahack2026/bei50/data/gt_32635.geojson --assemble --source marcaj-labels \
      --inspector route.geojson --farmer route_farmer.geojson --baseline data/eval/baseline_test.json \
      --flown-on 2026-09-20 --out-dir web/public/data
    ```
