@@ -7,7 +7,8 @@
     "build": "next build --turbopack",
     "start": "next start --hostname 127.0.0.1 --port 43173",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test \"src/**/*.test.mts\""
+    "test": "node --experimental-strip-types --test \"src/**/*.test.mts\"",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "lucide-react": "^1.48.0",
@@ -18,7 +19,9 @@
     "react-dom": "19.1.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
