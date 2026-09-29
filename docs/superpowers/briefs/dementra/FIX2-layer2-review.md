@@ -25,3 +25,16 @@ Fix all 11 findings:
 11. AI dataset card: "row pieces", not "row lines".
 Add node tests for the pure logic you change. `npm run lint`, `npm test`, `npm run build` pass. Commit
 (`Co-Authored-By: Grok 4.7 <noreply@x.ai>`). Report per finding.
+
+## Also fix (found by the e2e suite, task J; tests are in web/e2e, marked test.fixme)
+12. `/blocks` sort buttons carry `aria-sort` (not allowed on buttons; critical axe `aria-allowed-attr`): put
+    `aria-sort` on the `<th>` only.
+13. Phone widths: wide tables on `/blocks/[id]` and `/ai` scroll without a focusable region
+    (`scrollable-region-focusable`): give the scroll container `tabIndex={0}`, a `role="region"` and an
+    `aria-label`.
+14. Phone `/walks` (<481px) hides the Inspector/Farmer tabs, Done checkboxes, Download GPX and play/pause.
+    Keep the Phone board layout but expose the walk switch (compact segmented control in the sheet header),
+    play/pause, and a "Tasks" button that opens the task list (with Done checkboxes and GPX download) as a
+    full-height sheet.
+After fixing, remove the matching `test.fixme` marks / mobile skips in `web/e2e` and run `npm run e2e`
+(Playwright is installed; it builds and starts the app itself). All tests must pass.
