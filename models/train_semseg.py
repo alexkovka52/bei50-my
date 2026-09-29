@@ -46,8 +46,10 @@ def to_tensor(rgb: np.ndarray) -> torch.Tensor:
 class TileCrops(Dataset):
     """Random crops; half of them centred on a pixel of a rare class present in the tile."""
 
-    def __init__(self, tiles, masks, *, crop: int, length: int, rare: tuple[int, ...], seed: int = 0):
+    def __init__(self, tiles, masks, *, crop: int, length: int, rare: tuple[int, ...], seed: int = 0,
+                 rare_prob: float = 0.5):
         self.tiles, self.masks, self.crop, self.length, self.rare = tiles, masks, crop, length, rare
+        self.rare_prob = rare_prob
         self.rare_px = []
         for m in masks:
             ys, xs = np.nonzero(np.isin(m[::8, ::8], rare))
@@ -63,7 +65,7 @@ class TileCrops(Dataset):
         rgb, mask = self.tiles[k], self.masks[k]
         h, w = mask.shape
         c = self.crop
-        if self.rare_px[k] is not None and rng.random() < 0.5:
+        if self.rare_px[k] is not None and rng.random() < self.rare_prob:
             cy, cx = self.rare_px[k][rng.randrange(len(self.rare_px[k]))]
             y0 = int(np.clip(cy - c // 2 + rng.randint(-c // 4, c // 4), 0, h - c))
             x0 = int(np.clip(cx - c // 2 + rng.randint(-c // 4, c // 4), 0, w - c))
@@ -141,6 +143,8 @@ def main() -> int:
     p.add_argument("--lr", type=float, default=2e-4)
     p.add_argument("--workers", type=int, default=12)
     p.add_argument("--out", default="models/runs/semseg-gt")
+    p.add_argument("--rare-prob", type=float, default=0.5, help="share of crops centred on a rare-class pixel")
+    p.add_argument("--weight-power", type=float, default=0.5, help="CE weight = 1/freq**power (0.5 = sqrt)")
     args = p.parse_args()
 
     meta = json.loads(Path(args.data).read_text())
@@ -165,11 +169,12 @@ def main() -> int:
     freq = np.zeros(n)
     for m in train_m:
         freq += np.bincount(m[m != IGNORE].ravel(), minlength=n)[:n]
-    weights = 1.0 / np.sqrt(np.maximum(freq / freq.sum(), 1e-6))
+    weights = 1.0 / np.maximum(freq / freq.sum(), 1e-6) ** args.weight_power
     weights = weights / weights.mean()
     print("class px freq", dict(zip(names, (freq / freq.sum()).round(4))), "ce weights", weights.round(2), flush=True)
 
-    ds = TileCrops(train_t, train_m, crop=args.crop, length=args.iters * args.batch, rare=rare)
+    ds = TileCrops(train_t, train_m, crop=args.crop, length=args.iters * args.batch, rare=rare,
+                   rare_prob=args.rare_prob)
     dl = DataLoader(ds, batch_size=args.batch, num_workers=args.workers, shuffle=True, drop_last=True,
                     persistent_workers=True, worker_init_fn=_seed_worker)
 
