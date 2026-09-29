@@ -23,8 +23,8 @@ export async function TopBar({ title }: { title: string }) {
         </button>
         <div className="text-sm text-ink-muted">{flown}</div>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="flex h-11 w-full max-w-[300px] items-center gap-2.5 rounded-pill bg-paper px-4 text-ink-muted focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-solid focus-within:outline-moss">
+      <div className="flex min-w-0 items-center gap-3">
+        <label className="flex h-11 w-[300px] min-w-0 shrink items-center gap-2.5 rounded-pill bg-paper px-4 text-ink-muted focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-solid focus-within:outline-moss">
           <Search aria-hidden="true" size={18} strokeWidth={1.8} />
           <input
             type="search"
