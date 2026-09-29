@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dementra overview</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&amp;family=Onest:wght@400..700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Onest,system-ui,sans-serif;color:#0F2A1D;background:#E3EED4}
+a{color:#375534}a:hover{color:#0F2A1D}
+</style>
+</helmet>
+<div style="width: 1440px; height: 960px; box-sizing: border-box; background: #E3EED4; display: flex; font-family: Onest, system-ui, sans-serif; color: #0F2A1D">
+
+  <nav aria-label="Main" style="width: 88px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px 0">
+    <svg width="36" height="36" viewBox="0 0 256 256" aria-label="Dementra" style="margin-bottom: 22px"><path fill="#0F2A1D" d="M153.9 25.2 140.1 22.6 131.4 22.0 119.3 22.3 108.4 23.8 47.5 58.9 40.8 67.6 35.3 76.5 30.0 87.4 26.0 99.1ZM192.5 43.9 183.9 37.9 177.9 34.5 22.0 124.5 22.6 140.1 24.4 150.8 199.5 49.7ZM147.9 103.6 146.0 107.1 145.4 110.2 145.6 113.3 147.0 117.0 149.5 120.0 152.1 121.7 155.8 122.9 159.0 122.9 162.7 121.7 225.2 85.7 219.8 75.0 213.2 64.9 150.7 101.0ZM137.3 126.1 135.9 122.7 133.5 120.2 129.8 118.6 126.1 118.6 122.4 120.2 120.2 122.4 118.6 126.1 118.6 129.8 120.2 133.5 122.4 135.7 126.1 137.3 129.8 137.3 133.2 135.9 135.7 133.5 137.3 129.8ZM109.6 149.5 110.5 145.7 110.3 142.6 109.3 139.6 107.5 137.0 105.2 135.0 102.4 133.6 99.3 133.0 95.4 133.4 93.2 134.2 30.7 170.2 37.0 182.4 42.7 191.0 105.2 154.9 108.0 152.3ZM233.9 131.5 233.3 115.8 231.5 105.1 56.4 206.2 67.6 215.1 78.0 221.5ZM214.1 189.7 219.8 181.0 223.8 173.3 227.8 163.7 229.9 156.8 102.0 230.7 115.8 233.3 124.5 233.9 136.6 233.6 147.5 232.1 208.4 197.0Z"/></svg>
+    <a href="Overview.dc.html" aria-current="page" style="width: 64px; min-height: 60px; border-radius: 18px; background: #0F2A1D; color: #E3EED4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Overview</a>
+    <a href="Map3D.dc.html" style="width: 64px; min-height: 60px; border-radius: 18px; color: #3E5543; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.1 4.3 9.9 2.2a2 2 0 0 0-1.8 0L3.6 4.5A1 1 0 0 0 3 5.4v14a1 1 0 0 0 1.4.9l4-2a2 2 0 0 1 1.8 0l4.2 2.1a2 2 0 0 0 1.8 0l4.5-2.3a1 1 0 0 0 .6-.9v-14a1 1 0 0 0-1.4-.9l-4 2a2 2 0 0 1-1.8 0Z"/><path d="M15 5.8v15"/><path d="M9 3.2v15"/></svg>Map</a>
+    <a href="Walks.dc.html" style="width: 64px; min-height: 60px; border-radius: 18px; color: #3E5543; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-2.4C4 11.5 3 10.5 3 8c0-2.7 1.5-6 4.5-6C9.4 2 10 3.8 10 5.5c0 3.1-2 5.7-2 8.7V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.4c0-2.1 1-3.1 1-5.6 0-2.7-1.5-6-4.5-6C14.6 6 14 7.8 14 9.5c0 3.1 2 5.7 2 8.7V20a2 2 0 1 0 4 0Z"/></svg>Walks</a>
+    <a href="Blocks.dc.html" style="width: 64px; min-height: 60px; border-radius: 18px; color: #3E5543; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M21 9H3"/><path d="M21 15H3"/></svg>Blocks</a>
+    <a href="Blocks.dc.html" style="width: 64px; min-height: 60px; border-radius: 18px; color: #3E5543; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>Reports</a>
+    <a href="Model.dc.html" style="width: 64px; min-height: 60px; border-radius: 18px; color: #3E5543; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="1"/><path d="M18.9 12.3a1 1 0 0 0 0-.6 7.5 7.5 0 0 0-13.8 0 1 1 0 0 0 0 .6 7.5 7.5 0 0 0 13.8 0"/></svg>AI</a>
+  </nav>
+
+  <main style="flex-grow: 1; padding: 24px 32px 32px 8px; display: flex; flex-direction: column; gap: 22px">
+    <header style="display: flex; align-items: center; justify-content: space-between">
+      <div style="display: flex; align-items: center; gap: 18px">
+        <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -1px">Overview</h1>
+        <button style="font-family: Onest, sans-serif; font-size: 15px; background: #F8FBF3; color: #0F2A1D; border: 1px solid #AEC3B0; border-radius: 999px; padding: 10px 16px; display: flex; align-items: center; gap: 8px; min-height: 44px">Sireț3 vineyard, 145 ha<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div style="font-size: 14px; color: #3E5543">Flown 20 Sep 2026</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <label style="display: flex; align-items: center; gap: 10px; background: #F8FBF3; border-radius: 999px; padding: 0 16px; width: 300px; height: 44px; box-sizing: border-box; font-size: 15px; color: #3E5543"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input aria-label="Search blocks, rows and tasks" placeholder="Search blocks, rows, tasks" style="border: 0; background: transparent; font-family: Onest, sans-serif; font-size: 15px; outline: none; width: 100%; color: #0F2A1D"></label>
+        <button aria-label="Notifications" style="width: 44px; height: 44px; border-radius: 50%; border: 0; background: #F8FBF3; color: #0F2A1D; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: #375534; color: #E3EED4; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">CP</div>
+      </div>
+    </header>
+
+    <div style="flex-grow: 1; display: grid; grid-template-columns: 1fr 520px; gap: 22px; min-height: 0">
+      <div style="display: flex; flex-direction: column; gap: 22px; min-width: 0">
+
+        <section style="background: #F8FBF3; border-radius: 28px; padding: 28px 30px; display: flex; flex-direction: column; gap: 18px">
+          <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 34px; font-weight: 650; line-height: 1.1; letter-spacing: -0.6px; max-width: 640px">1,091 planting gaps and 83 waste items are waiting across 31 blocks.</div>
+          <div style="font-size: 16px; color: #3E5543; line-height: 1.5">One inspector walk visits all of them: 7.99 km, about 2 hours at an easy pace.</div>
+          <div style="display: flex; gap: 12px">
+            <a href="Walks.dc.html" style="font-size: 15px; font-weight: 600; background: #375534; color: #F8FBF3; border-radius: 999px; padding: 12px 20px; text-decoration: none; min-height: 44px; box-sizing: border-box; display: flex; align-items: center">Start inspector walk</a>
+            <a href="Walks.dc.html" style="font-size: 15px; font-weight: 600; color: #0F2A1D; border: 1px solid #AEC3B0; border-radius: 999px; padding: 12px 20px; text-decoration: none; min-height: 44px; box-sizing: border-box; display: flex; align-items: center">See all tasks</a>
+          </div>
+        </section>
+
+        <section aria-label="Vineyard in numbers" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 4px 0">
+          <div style="padding: 0 22px 0 4px; border-right: 1px solid #AEC3B0">
+            <div style="font-size: 14px; color: #3E5543">Rows</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -1px; font-variant-numeric: tabular-nums">39.1<span style="font-size: 20px; font-weight: 600"> km</span></div>
+            <div style="font-size: 13px; color: #3E5543">2,030 row pieces</div>
+          </div>
+          <div style="padding: 0 22px; border-right: 1px solid #AEC3B0">
+            <div style="font-size: 14px; color: #3E5543">Plants</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -1px; font-variant-numeric: tabular-nums">13,308</div>
+            <div style="font-size: 13px; color: #3E5543">1.0 ha of canopy</div>
+          </div>
+          <div style="padding: 0 22px; border-right: 1px solid #AEC3B0">
+            <div style="font-size: 14px; color: #3E5543">Inter-row ground</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -1px; font-variant-numeric: tabular-nums">21.8<span style="font-size: 20px; font-weight: 600"> ha</span></div>
+            <div style="font-size: 13px; color: #3E5543">83% bare soil</div>
+          </div>
+          <div style="padding: 0 4px 0 22px">
+            <div style="font-size: 14px; color: #3E5543">Disrupted rows</div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -1px; font-variant-numeric: tabular-nums">38<span style="font-size: 20px; font-weight: 600">%</span></div>
+            <div style="font-size: 13px; color: #3E5543">a gap of 5 m or more</div>
+          </div>
+        </section>
+
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px">
+          <section style="background: #F8FBF3; border-radius: 28px; padding: 22px 24px; display: flex; flex-direction: column; gap: 14px">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start">
+              <div>
+                <h2 style="margin: 0; font-size: 16px; font-weight: 600">Weather at Sireț</h2>
+                <div style="font-size: 13px; color: #3E5543">Live, Open-Meteo</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#375534" stroke-width="1.8" aria-hidden="true"><path d="M12 2v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="M20 12h2"/><path d="m19.1 4.9-1.4 1.4"/><path d="M15.9 13.1a4 4 0 0 0-5.8-4.7"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></svg>
+                <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 36px; font-weight: 700">21°</div>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; align-items: end; height: 76px">
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: #3E5543"><div style="width: 10px; height: 52px; border-radius: 6px; background: linear-gradient(#6B9071, #AEC3B0)"></div>Tue</div>
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: #3E5543"><div style="width: 10px; height: 60px; border-radius: 6px; background: linear-gradient(#6B9071, #AEC3B0)"></div>Wed</div>
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: #3E5543"><div style="width: 10px; height: 64px; border-radius: 6px; background: linear-gradient(#6B9071, #AEC3B0)"></div>Thu</div>
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: #3E5543"><div style="width: 10px; height: 64px; border-radius: 6px; background: linear-gradient(#6B9071, #E09A2D)"></div>Fri</div>
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: #0F2A1D; font-weight: 600"><div style="width: 10px; height: 66px; border-radius: 6px; background: linear-gradient(#6B9071, #E09A2D)"></div>Sat</div>
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: #3E5543"><div style="width: 10px; height: 70px; border-radius: 6px; background: linear-gradient(#6B9071, #AEC3B0)"></div>Sun</div>
+              <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: #3E5543"><div style="width: 10px; height: 46px; border-radius: 6px; background: linear-gradient(#6B9071, #AEC3B0)"></div>Mon</div>
+            </div>
+            <div style="font-size: 14px; line-height: 1.45">Cold nights ahead, lowest 5.0 °C on Saturday. Dry until Monday; wind 16 km/h.</div>
+          </section>
+
+          <section style="background: #F8FBF3; border-radius: 28px; padding: 22px 24px; display: flex; flex-direction: column; gap: 16px">
+            <h2 style="margin: 0; font-size: 16px; font-weight: 600">Inter-row cover</h2>
+            <div style="display: flex; height: 14px; border-radius: 999px; overflow: hidden">
+              <div style="width: 55%; background: #A9825A"></div><div style="width: 7%; background: #B4B65A"></div><div style="width: 4%; background: #6B9071"></div><div style="width: 34%; background: #D9E4CD"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; font-size: 14px; font-variant-numeric: tabular-nums">
+              <div style="display: flex; align-items: center; gap: 8px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #A9825A"></span>Bare soil, 908</div>
+              <div style="display: flex; align-items: center; gap: 8px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #B4B65A"></span>Mixed, 119</div>
+              <div style="display: flex; align-items: center; gap: 8px"><span style="width: 10px; height: 10px; border-radius: 3px; background: #6B9071"></span>Vegetation, 67</div>
+              <div style="display: flex; align-items: center; gap: 8px; color: #3E5543"><span style="width: 10px; height: 10px; border-radius: 3px; background: #D9E4CD; border: 1px solid #AEC3B0"></span>Not assessed, 545</div>
+            </div>
+            <div style="font-size: 14px; line-height: 1.45; color: #3E5543">Mostly tilled. 186 inter-rows carry grass worth mowing before harvest traffic.</div>
+          </section>
+        </div>
+
+        <section style="display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; justify-content: space-between; align-items: baseline"><h2 style="margin: 0; font-size: 16px; font-weight: 600">Next on the walk</h2><a href="Walks.dc.html" style="font-size: 14px; font-weight: 600">All 1,174 tasks</a></div>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+            <div style="background: #F8FBF3; border-radius: 20px; padding: 14px 16px; display: flex; gap: 12px; align-items: center"><span style="width: 36px; height: 36px; border-radius: 12px; background: rgba(224,154,45,0.16); color: #9A6112; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px">1</span><div><div style="font-weight: 600; font-size: 14px">64 m gap, V04 row 32</div><div style="font-size: 13px; color: #3E5543">Check missing plants</div></div></div>
+            <div style="background: #F8FBF3; border-radius: 20px; padding: 14px 16px; display: flex; gap: 12px; align-items: center"><span style="width: 36px; height: 36px; border-radius: 12px; background: rgba(224,154,45,0.16); color: #9A6112; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px">2</span><div><div style="font-weight: 600; font-size: 14px">43 m gap, V04 row 24</div><div style="font-size: 13px; color: #3E5543">Check missing plants</div></div></div>
+            <div style="background: #F8FBF3; border-radius: 20px; padding: 14px 16px; display: flex; gap: 12px; align-items: center"><span style="width: 36px; height: 36px; border-radius: 12px; background: rgba(201,67,47,0.14); color: #A1321F; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px">3</span><div><div style="font-weight: 600; font-size: 14px">17 waste items, V08</div><div style="font-size: 13px; color: #3E5543">Collect before spraying</div></div></div>
+          </div>
+        </section>
+      </div>
+
+      <section aria-label="3D map preview" style="position: relative; border-radius: 32px; overflow: hidden; background: #0F2A1D">
+        <div style="position: absolute; left: -35%; top: 8%; width: 170%; height: 110%; transform: perspective(900px) rotateX(50deg) rotateZ(-8deg); transform-origin: 50% 40%">
+          <img src="/_blob/39101311013faa1a376d8e3cf052eeca" alt="Sireț3 orthomosaic tilted in 3D" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%" aria-hidden="true"><polygon points="33,52 62,46 74,88 44,96" fill="rgba(214,242,107,0.14)" stroke="#D6F26B" stroke-width="0.35"/></svg>
+          <span style="position: absolute; left: 49%; top: 62%; width: 14px; height: 14px; border-radius: 50%; background: #E09A2D; border: 2px solid #0F2A1D"></span>
+          <span style="position: absolute; left: 57%; top: 74%; width: 14px; height: 14px; border-radius: 50%; background: #E09A2D; border: 2px solid #0F2A1D"></span>
+          <span style="position: absolute; left: 41%; top: 80%; width: 12px; height: 12px; border-radius: 3px; background: #C9432F; border: 2px solid #0F2A1D"></span>
+        </div>
+        <div style="position: absolute; inset: 0; background: linear-gradient(180deg, #0F2A1D 0%, rgba(15,42,29,0.55) 26%, rgba(15,42,29,0) 52%)"></div>
+        <div style="position: absolute; left: 24px; top: 24px; right: 24px; display: flex; justify-content: space-between; align-items: flex-start; color: #E3EED4">
+          <div>
+            <div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 26px; font-weight: 700">Sireț3 in 3D</div>
+            <div style="font-size: 14px; color: #C9D8C0">145 ha, 311 tiles at 2.5 cm</div>
+          </div>
+          <a href="Map3D.dc.html" style="background: #F8FBF3; color: #0F2A1D; font-weight: 600; font-size: 14px; border-radius: 999px; padding: 12px 18px; text-decoration: none; min-height: 44px; box-sizing: border-box; display: flex; align-items: center">Open map</a>
+        </div>
+        <div style="position: absolute; right: 24px; top: 46%; background: rgba(15,42,29,0.78); backdrop-filter: blur(14px); color: #E3EED4; border: 1px solid rgba(227,238,212,0.16); border-radius: 18px; padding: 14px 16px; width: 200px">
+          <div style="font-weight: 600; font-size: 15px">Block V02</div>
+          <div style="font-size: 13px; color: #C9D8C0; margin-top: 2px">105 rows, 4.3 km</div>
+          <div style="display: flex; gap: 14px; margin-top: 10px; font-size: 13px"><span style="color: #F2C06B">81 disrupted</span><span style="color: #F09A88">3 waste</span></div>
+        </div>
+        <div style="position: absolute; left: 24px; bottom: 24px; display: flex; gap: 8px">
+          <span style="background: rgba(15,42,29,0.78); color: #E3EED4; border-radius: 999px; padding: 8px 12px; font-size: 13px; display: flex; align-items: center; gap: 6px"><span style="width: 9px; height: 9px; border-radius: 50%; background: #E09A2D"></span>Gaps</span>
+          <span style="background: rgba(15,42,29,0.78); color: #E3EED4; border-radius: 999px; padding: 8px 12px; font-size: 13px; display: flex; align-items: center; gap: 6px"><span style="width: 9px; height: 9px; border-radius: 2px; background: #C9432F"></span>Waste</span>
+          <span style="background: rgba(15,42,29,0.78); color: #E3EED4; border-radius: 999px; padding: 8px 12px; font-size: 13px; display: flex; align-items: center; gap: 6px"><span style="width: 9px; height: 9px; border-radius: 2px; border: 1.5px solid #D6F26B"></span>Selected block</span>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

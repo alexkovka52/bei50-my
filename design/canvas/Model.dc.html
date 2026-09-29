@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dementra AI and model quality</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&amp;family=Onest:wght@400..700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Onest,system-ui,sans-serif;color:#0F2A1D;background:#E3EED4}
+a{color:#375534}a:hover{color:#0F2A1D}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #E3EED4; display: flex; font-family: Onest, system-ui, sans-serif; color: #0F2A1D">
+
+  <nav aria-label="Main" style="width: 88px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px 0">
+    <svg width="36" height="36" viewBox="0 0 256 256" aria-label="Dementra" style="margin-bottom: 22px"><path fill="#0F2A1D" d="M153.9 25.2 140.1 22.6 131.4 22.0 119.3 22.3 108.4 23.8 47.5 58.9 40.8 67.6 35.3 76.5 30.0 87.4 26.0 99.1ZM192.5 43.9 183.9 37.9 177.9 34.5 22.0 124.5 22.6 140.1 24.4 150.8 199.5 49.7ZM147.9 103.6 146.0 107.1 145.4 110.2 145.6 113.3 147.0 117.0 149.5 120.0 152.1 121.7 155.8 122.9 159.0 122.9 162.7 121.7 225.2 85.7 219.8 75.0 213.2 64.9 150.7 101.0ZM137.3 126.1 135.9 122.7 133.5 120.2 129.8 118.6 126.1 118.6 122.4 120.2 120.2 122.4 118.6 126.1 118.6 129.8 120.2 133.5 122.4 135.7 126.1 137.3 129.8 137.3 133.2 135.9 135.7 133.5 137.3 129.8ZM109.6 149.5 110.5 145.7 110.3 142.6 109.3 139.6 107.5 137.0 105.2 135.0 102.4 133.6 99.3 133.0 95.4 133.4 93.2 134.2 30.7 170.2 37.0 182.4 42.7 191.0 105.2 154.9 108.0 152.3ZM233.9 131.5 233.3 115.8 231.5 105.1 56.4 206.2 67.6 215.1 78.0 221.5ZM214.1 189.7 219.8 181.0 223.8 173.3 227.8 163.7 229.9 156.8 102.0 230.7 115.8 233.3 124.5 233.9 136.6 233.6 147.5 232.1 208.4 197.0Z"/></svg>
+    <a href="Overview.dc.html" style="width: 64px; min-height: 60px; border-radius: 18px; color: #3E5543; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Overview</a>
+    <a href="Map3D.dc.html" style="width: 64px; min-height: 60px; border-radius: 18px; color: #3E5543; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.1 4.3 9.9 2.2a2 2 0 0 0-1.8 0L3.6 4.5A1 1 0 0 0 3 5.4v14a1 1 0 0 0 1.4.9l4-2a2 2 0 0 1 1.8 0l4.2 2.1a2 2 0 0 0 1.8 0l4.5-2.3a1 1 0 0 0 .6-.9v-14a1 1 0 0 0-1.4-.9l-4 2a2 2 0 0 1-1.8 0Z"/><path d="M15 5.8v15"/><path d="M9 3.2v15"/></svg>Map</a>
+    <a href="Walks.dc.html" style="width: 64px; min-height: 60px; border-radius: 18px; color: #3E5543; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-2.4C4 11.5 3 10.5 3 8c0-2.7 1.5-6 4.5-6C9.4 2 10 3.8 10 5.5c0 3.1-2 5.7-2 8.7V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.4c0-2.1 1-3.1 1-5.6 0-2.7-1.5-6-4.5-6C14.6 6 14 7.8 14 9.5c0 3.1 2 5.7 2 8.7V20a2 2 0 1 0 4 0Z"/></svg>Walks</a>
+    <a href="Blocks.dc.html" style="width: 64px; min-height: 60px; border-radius: 18px; color: #3E5543; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M21 9H3"/><path d="M21 15H3"/></svg>Blocks</a>
+    <a href="Blocks.dc.html" style="width: 64px; min-height: 60px; border-radius: 18px; color: #3E5543; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>Reports</a>
+    <a href="Model.dc.html" aria-current="page" style="width: 64px; min-height: 60px; border-radius: 18px; background: #0F2A1D; color: #E3EED4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="1"/><path d="M18.9 12.3a1 1 0 0 0 0-.6 7.5 7.5 0 0 0-13.8 0 1 1 0 0 0 0 .6 7.5 7.5 0 0 0 13.8 0"/></svg>AI</a>
+  </nav>
+
+  <main style="flex-grow: 1; padding: 24px 32px 32px 8px; display: flex; flex-direction: column; gap: 22px; min-width: 0">
+    <header>
+      <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -1px">How Dementra reads your vineyard</h1>
+      <div style="font-size: 16px; color: #3E5543; margin-top: 6px">Five models turn one drone flight into plants, rows, ground cover, waste and a walk.</div>
+    </header>
+
+    <ol style="list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px">
+      <li style="background: #0F2A1D; color: #E3EED4; border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 8px"><div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 28px; font-weight: 700; color: #D6F26B">1</div><div style="font-weight: 600; font-size: 15px">Fly and tile</div><div style="font-size: 13px; line-height: 1.45; color: #C9D8C0">311 tiles at 2.5 cm per pixel, 145 ha</div></li>
+      <li style="background: #F8FBF3; border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 8px"><div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 28px; font-weight: 700; color: #375534">2</div><div style="font-weight: 600; font-size: 15px">Find every plant</div><div style="font-size: 13px; line-height: 1.45; color: #3E5543">One outline per vine canopy</div></li>
+      <li style="background: #F8FBF3; border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 8px"><div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 28px; font-weight: 700; color: #375534">3</div><div style="font-weight: 600; font-size: 15px">Trace the rows</div><div style="font-size: 13px; line-height: 1.45; color: #3E5543">Row lines, joined across tiles</div></li>
+      <li style="background: #F8FBF3; border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 8px"><div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 28px; font-weight: 700; color: #375534">4</div><div style="font-weight: 600; font-size: 15px">Read the ground</div><div style="font-size: 13px; line-height: 1.45; color: #3E5543">Bare soil, grass or a mix</div></li>
+      <li style="background: #F8FBF3; border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 8px"><div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 28px; font-weight: 700; color: #375534">5</div><div style="font-weight: 600; font-size: 15px">Spot waste</div><div style="font-size: 13px; line-height: 1.45; color: #3E5543">Litter, not vine tubes or stakes</div></li>
+      <li style="background: #F8FBF3; border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 8px"><div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 28px; font-weight: 700; color: #375534">6</div><div style="font-weight: 600; font-size: 15px">Plan the walk</div><div style="font-size: 13px; line-height: 1.45; color: #3E5543">A closed loop on legal paths</div></li>
+    </ol>
+
+    <div style="flex-grow: 1; display: grid; grid-template-columns: 1fr 440px; gap: 22px; min-height: 0">
+      <section style="background: #F8FBF3; border-radius: 28px; padding: 24px 26px; display: flex; flex-direction: column; gap: 14px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline">
+          <h2 style="margin: 0; font-size: 18px; font-weight: 600">Scores on fields the models never saw</h2>
+          <div style="font-size: 13px; color: #3E5543">45 held-out tiles</div>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums">
+          <thead><tr style="color: #3E5543; font-size: 13px; text-align: left"><th style="padding: 10px 0; font-weight: 500">What we measure</th><th style="padding: 10px 12px; font-weight: 500; text-align: right">Before</th><th style="padding: 10px 0; font-weight: 500; text-align: right">Now</th></tr></thead>
+          <tbody>
+            <tr style="border-top: 1px solid #DDE7D2"><td style="padding: 14px 0">Plants found correctly (F1)</td><td style="padding: 14px 12px; text-align: right; color: #3E5543">0.31</td><td style="padding: 14px 0; text-align: right; font-weight: 600">[pending]</td></tr>
+            <tr style="border-top: 1px solid #DDE7D2"><td style="padding: 14px 0">Waste items found</td><td style="padding: 14px 12px; text-align: right; color: #3E5543">2 of 7</td><td style="padding: 14px 0; text-align: right; font-weight: 600">[pending]</td></tr>
+            <tr style="border-top: 1px solid #DDE7D2"><td style="padding: 14px 0">Rows matched to the drawn rows</td><td style="padding: 14px 12px; text-align: right; color: #3E5543">Not measured</td><td style="padding: 14px 0; text-align: right; font-weight: 600">[pending]</td></tr>
+            <tr style="border-top: 1px solid #DDE7D2"><td style="padding: 14px 0">Row gaps classified right</td><td style="padding: 14px 12px; text-align: right; color: #3E5543">Not measured</td><td style="padding: 14px 0; text-align: right; font-weight: 600">[pending]</td></tr>
+            <tr style="border-top: 1px solid #DDE7D2"><td style="padding: 14px 0">Inter-row cover right</td><td style="padding: 14px 12px; text-align: right; color: #3E5543">Colour rule</td><td style="padding: 14px 0; text-align: right; font-weight: 600">[pending]</td></tr>
+          </tbody>
+        </table>
+        <div style="font-size: 14px; line-height: 1.5; color: #3E5543; max-width: 620px">Held-out tiles are whole neighbourhoods of the vineyard, so a model cannot pass by memorising the rows next door.</div>
+      </section>
+
+      <section style="background: #0F2A1D; color: #E3EED4; border-radius: 28px; padding: 24px 26px; display: flex; flex-direction: column; gap: 16px">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 600">Trained on your own labels</h2>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; font-variant-numeric: tabular-nums">
+          <div><div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 34px; font-weight: 700">13,308</div><div style="font-size: 13px; color: #C9D8C0">plant outlines</div></div>
+          <div><div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 34px; font-weight: 700">2,030</div><div style="font-size: 13px; color: #C9D8C0">row lines</div></div>
+          <div><div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 34px; font-weight: 700">1,641</div><div style="font-size: 13px; color: #C9D8C0">inter-row areas</div></div>
+          <div><div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 34px; font-weight: 700">83</div><div style="font-size: 13px; color: #C9D8C0">waste items</div></div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="font-size: 13px; color: #C9D8C0">How the 311 tiles are used</div>
+          <div style="display: flex; height: 12px; border-radius: 999px; overflow: hidden"><div style="width: 72%; background: #6B9071"></div><div style="width: 14%; background: #AEC3B0"></div><div style="width: 14%; background: #D6F26B"></div></div>
+          <div style="display: flex; gap: 16px; font-size: 13px"><span>Learn 223</span><span>Tune 43</span><span>Score 45</span></div>
+        </div>
+        <div style="font-size: 13px; line-height: 1.5; color: #C9D8C0">Rows drawn as one long outline are cut into plant-sized pieces, and tiles with half-labelled plants are left out of plant training.</div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

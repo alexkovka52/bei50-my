@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dementra walks and field tasks</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&amp;family=Onest:wght@400..700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:Onest,system-ui,sans-serif;color:#0F2A1D;background:#E3EED4}
+a{color:#375534}a:hover{color:#0F2A1D}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #E3EED4; display: flex; font-family: Onest, system-ui, sans-serif; color: #0F2A1D">
+
+  <nav aria-label="Main" style="width: 88px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px 0">
+    <svg width="36" height="36" viewBox="0 0 256 256" aria-label="Dementra" style="margin-bottom: 22px"><path fill="#0F2A1D" d="M153.9 25.2 140.1 22.6 131.4 22.0 119.3 22.3 108.4 23.8 47.5 58.9 40.8 67.6 35.3 76.5 30.0 87.4 26.0 99.1ZM192.5 43.9 183.9 37.9 177.9 34.5 22.0 124.5 22.6 140.1 24.4 150.8 199.5 49.7ZM147.9 103.6 146.0 107.1 145.4 110.2 145.6 113.3 147.0 117.0 149.5 120.0 152.1 121.7 155.8 122.9 159.0 122.9 162.7 121.7 225.2 85.7 219.8 75.0 213.2 64.9 150.7 101.0ZM137.3 126.1 135.9 122.7 133.5 120.2 129.8 118.6 126.1 118.6 122.4 120.2 120.2 122.4 118.6 126.1 118.6 129.8 120.2 133.5 122.4 135.7 126.1 137.3 129.8 137.3 133.2 135.9 135.7 133.5 137.3 129.8ZM109.6 149.5 110.5 145.7 110.3 142.6 109.3 139.6 107.5 137.0 105.2 135.0 102.4 133.6 99.3 133.0 95.4 133.4 93.2 134.2 30.7 170.2 37.0 182.4 42.7 191.0 105.2 154.9 108.0 152.3ZM233.9 131.5 233.3 115.8 231.5 105.1 56.4 206.2 67.6 215.1 78.0 221.5ZM214.1 189.7 219.8 181.0 223.8 173.3 227.8 163.7 229.9 156.8 102.0 230.7 115.8 233.3 124.5 233.9 136.6 233.6 147.5 232.1 208.4 197.0Z"/></svg>
+    <a href="Overview.dc.html" style="width: 64px; min-height: 60px; border-radius: 18px; color: #3E5543; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Overview</a>
+    <a href="Map3D.dc.html" style="width: 64px; min-height: 60px; border-radius: 18px; color: #3E5543; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.1 4.3 9.9 2.2a2 2 0 0 0-1.8 0L3.6 4.5A1 1 0 0 0 3 5.4v14a1 1 0 0 0 1.4.9l4-2a2 2 0 0 1 1.8 0l4.2 2.1a2 2 0 0 0 1.8 0l4.5-2.3a1 1 0 0 0 .6-.9v-14a1 1 0 0 0-1.4-.9l-4 2a2 2 0 0 1-1.8 0Z"/><path d="M15 5.8v15"/><path d="M9 3.2v15"/></svg>Map</a>
+    <a href="Walks.dc.html" aria-current="page" style="width: 64px; min-height: 60px; border-radius: 18px; background: #0F2A1D; color: #E3EED4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-2.4C4 11.5 3 10.5 3 8c0-2.7 1.5-6 4.5-6C9.4 2 10 3.8 10 5.5c0 3.1-2 5.7-2 8.7V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.4c0-2.1 1-3.1 1-5.6 0-2.7-1.5-6-4.5-6C14.6 6 14 7.8 14 9.5c0 3.1 2 5.7 2 8.7V20a2 2 0 1 0 4 0Z"/></svg>Walks</a>
+    <a href="Blocks.dc.html" style="width: 64px; min-height: 60px; border-radius: 18px; color: #3E5543; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M21 9H3"/><path d="M21 15H3"/></svg>Blocks</a>
+    <a href="Blocks.dc.html" style="width: 64px; min-height: 60px; border-radius: 18px; color: #3E5543; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>Reports</a>
+    <a href="Model.dc.html" style="width: 64px; min-height: 60px; border-radius: 18px; color: #3E5543; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="1"/><path d="M18.9 12.3a1 1 0 0 0 0-.6 7.5 7.5 0 0 0-13.8 0 1 1 0 0 0 0 .6 7.5 7.5 0 0 0 13.8 0"/></svg>AI</a>
+  </nav>
+
+  <main style="flex-grow: 1; padding: 24px 32px 32px 8px; display: flex; gap: 22px; min-width: 0">
+    <section style="width: 420px; flex-shrink: 0; display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -1px">Walks</h1>
+        <div role="tablist" aria-label="Walk" style="display: flex; background: #F8FBF3; border-radius: 999px; padding: 4px">
+          <button role="tab" aria-selected="true" style="font-family: Onest, sans-serif; font-size: 14px; font-weight: 600; background: #0F2A1D; color: #E3EED4; border: 0; border-radius: 999px; padding: 0 16px; height: 38px">Inspector</button>
+          <button role="tab" aria-selected="false" style="font-family: Onest, sans-serif; font-size: 14px; background: transparent; color: #0F2A1D; border: 0; border-radius: 999px; padding: 0 16px; height: 38px">Farmer</button>
+        </div>
+      </div>
+
+      <div style="background: #F8FBF3; border-radius: 28px; padding: 22px; display: flex; flex-direction: column; gap: 16px">
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; font-variant-numeric: tabular-nums">
+          <div><div style="font-size: 13px; color: #3E5543">Distance</div><div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 28px; font-weight: 700">7.99 km</div></div>
+          <div><div style="font-size: 13px; color: #3E5543">On foot</div><div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 28px; font-weight: 700">2 h</div></div>
+          <div><div style="font-size: 13px; color: #3E5543">Stops</div><div style="font-family: 'Bricolage Grotesque', sans-serif; font-size: 28px; font-weight: 700">1,174</div></div>
+        </div>
+        <div style="font-size: 14px; line-height: 1.5; color: #3E5543">Starts and ends at the farm-track junction in the north-west corner. Stays on inter-rows and tracks, never inside forbidden zones.</div>
+        <div style="display: flex; gap: 10px">
+          <button style="flex-grow: 1; font-family: Onest, sans-serif; font-size: 14px; font-weight: 600; background: #375534; color: #F8FBF3; border: 0; border-radius: 999px; min-height: 44px">Send to phone</button>
+          <button style="flex-grow: 1; font-family: Onest, sans-serif; font-size: 14px; font-weight: 600; background: transparent; color: #0F2A1D; border: 1px solid #AEC3B0; border-radius: 999px; min-height: 44px">Download GPX</button>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: baseline; justify-content: space-between">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600">Largest issues on this walk</h2>
+        <div role="group" aria-label="Filter" style="display: flex; gap: 6px; font-size: 13px">
+          <button style="font-family: Onest, sans-serif; font-size: 13px; border: 0; border-radius: 999px; padding: 6px 12px; background: #0F2A1D; color: #E3EED4">All</button>
+          <button style="font-family: Onest, sans-serif; font-size: 13px; border: 0; border-radius: 999px; padding: 6px 12px; background: #F8FBF3; color: #0F2A1D">Gaps 1,091</button>
+          <button style="font-family: Onest, sans-serif; font-size: 13px; border: 0; border-radius: 999px; padding: 6px 12px; background: #F8FBF3; color: #0F2A1D">Waste 83</button>
+        </div>
+      </div>
+
+      <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+        <li style="background: #F8FBF3; border-radius: 18px; padding: 12px 14px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: rgba(224,154,45,0.18); display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 50%; background: #E09A2D"></span></span><div style="flex-grow: 1"><div style="font-weight: 600; font-size: 14px">64 m gap, V04 row 32</div><div style="font-size: 13px; color: #3E5543">Missing plants</div></div><label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #3E5543"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #375534">Done</label></li>
+        <li style="background: #F8FBF3; border-radius: 18px; padding: 12px 14px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: rgba(224,154,45,0.18); display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 50%; background: #E09A2D"></span></span><div style="flex-grow: 1"><div style="font-weight: 600; font-size: 14px">43 m gap, V04 row 24</div><div style="font-size: 13px; color: #3E5543">Missing plants</div></div><label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #3E5543"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #375534">Done</label></li>
+        <li style="background: #F8FBF3; border-radius: 18px; padding: 12px 14px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: rgba(201,67,47,0.14); display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 2px; background: #C9432F"></span></span><div style="flex-grow: 1"><div style="font-weight: 600; font-size: 14px">17 waste items, V08</div><div style="font-size: 13px; color: #3E5543">Collect before spraying</div></div><label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #3E5543"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #375534">Done</label></li>
+        <li style="background: #F8FBF3; border-radius: 18px; padding: 12px 14px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: rgba(224,154,45,0.18); display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 50%; background: #E09A2D"></span></span><div style="flex-grow: 1"><div style="font-weight: 600; font-size: 14px">38 m gap, V03 row 34</div><div style="font-size: 13px; color: #3E5543">Missing plants</div></div><label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #3E5543"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #375534">Done</label></li>
+        <li style="background: #F8FBF3; border-radius: 18px; padding: 12px 14px; display: flex; align-items: center; gap: 12px"><span style="width: 32px; height: 32px; border-radius: 10px; background: rgba(224,154,45,0.18); display: flex; align-items: center; justify-content: center"><span style="width: 10px; height: 10px; border-radius: 50%; background: #E09A2D"></span></span><div style="flex-grow: 1"><div style="font-weight: 600; font-size: 14px">36 m gap, V03 row 41</div><div style="font-size: 13px; color: #3E5543">Missing plants</div></div><label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #3E5543"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #375534">Done</label></li>
+      </ul>
+    </section>
+
+    <section aria-label="Walk on the map" style="flex-grow: 1; position: relative; border-radius: 32px; overflow: hidden; background: #0F2A1D">
+      <img src="/_blob/39101311013faa1a376d8e3cf052eeca" alt="Top-down drone map with the inspector walk" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover">
+      <div style="position: absolute; inset: 0; background: rgba(15,42,29,0.22)"></div>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%" aria-hidden="true">
+        <polyline points="12,14 20,22 28,20 30,42 38,40 40,62 50,60 52,76" fill="none" stroke="#D6F26B" stroke-width="0.7" stroke-linejoin="round" stroke-linecap="round"/>
+        <polyline points="52,76 60,74 62,52 70,50 72,30 80,28 82,58 90,56 88,86 60,90 30,88 18,70 12,40 12,14" fill="none" stroke="#E3EED4" stroke-width="0.45" stroke-dasharray="1.2 1" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+      <span style="position: absolute; left: 12%; top: 14%; transform: translate(-50%, -50%); width: 22px; height: 22px; border-radius: 50%; background: #0F2A1D; border: 3px solid #D6F26B"></span>
+      <span style="position: absolute; left: calc(12% + 18px); top: calc(14% - 14px); background: #0F2A1D; color: #E3EED4; font-size: 12px; font-weight: 600; border-radius: 8px; padding: 4px 8px">Start and finish</span>
+      <span style="position: absolute; left: 52%; top: 76%; transform: translate(-50%, -50%); width: 30px; height: 30px; border-radius: 50%; background: rgba(214,242,107,0.35)"></span>
+      <span style="position: absolute; left: 52%; top: 76%; transform: translate(-50%, -50%); width: 16px; height: 16px; border-radius: 50%; background: #D6F26B; border: 2px solid #0F2A1D"></span>
+      <span style="position: absolute; left: 62%; top: 52%; width: 12px; height: 12px; border-radius: 50%; background: #E09A2D; border: 2px solid #0F2A1D"></span>
+      <span style="position: absolute; left: 72%; top: 30%; width: 12px; height: 12px; border-radius: 50%; background: #E09A2D; border: 2px solid #0F2A1D"></span>
+      <span style="position: absolute; left: 82%; top: 57%; width: 11px; height: 11px; border-radius: 2px; background: #C9432F; border: 2px solid #0F2A1D"></span>
+      <span style="position: absolute; left: 39%; top: 61%; width: 12px; height: 12px; border-radius: 50%; background: rgba(224,154,45,0.5); border: 2px solid #0F2A1D"></span>
+
+      <div style="position: absolute; left: 20px; right: 20px; bottom: 20px; background: rgba(15,42,29,0.82); backdrop-filter: blur(16px); border: 1px solid rgba(227,238,212,0.14); border-radius: 24px; padding: 16px 20px; display: flex; align-items: center; gap: 18px; color: #E3EED4">
+        <button aria-label="Pause playback" style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; border: 0; background: #D6F26B; color: #0F2A1D; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></button>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; justify-content: space-between; font-size: 14px; font-variant-numeric: tabular-nums"><span style="font-weight: 600">2.72 of 7.99 km</span><span style="color: #C9D8C0">about 1 h 19 min left</span></div>
+          <div style="position: relative; height: 8px; border-radius: 999px; background: rgba(227,238,212,0.16)"><div style="width: 34%; height: 100%; border-radius: 999px; background: #D6F26B"></div><span style="position: absolute; left: 34%; top: 50%; transform: translate(-50%, -50%); width: 18px; height: 18px; border-radius: 50%; background: #E3EED4; border: 3px solid #0F2A1D"></span></div>
+        </div>
+        <div role="group" aria-label="Playback speed" style="display: flex; gap: 4px; background: rgba(227,238,212,0.08); border-radius: 999px; padding: 3px">
+          <button style="font-family: Onest, sans-serif; font-size: 13px; border: 0; border-radius: 999px; background: transparent; color: #C9D8C0; padding: 0 12px; height: 34px">1×</button>
+          <button aria-pressed="true" style="font-family: Onest, sans-serif; font-size: 13px; font-weight: 600; border: 0; border-radius: 999px; background: #E3EED4; color: #0F2A1D; padding: 0 12px; height: 34px">8×</button>
+          <button style="font-family: Onest, sans-serif; font-size: 13px; border: 0; border-radius: 999px; background: transparent; color: #C9D8C0; padding: 0 12px; height: 34px">32×</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
