@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import type { KeyboardEvent } from "react";
+import { useEffect, useRef, type KeyboardEvent, type MouseEvent } from "react";
 import { walkHref, type WalkRole } from "@/lib/walks/tasks";
 import { cn } from "@/lib/utils";
 
@@ -13,8 +12,35 @@ const LABEL: Record<WalkRole, string> = {
   farmer: "Farmer",
 };
 
-export function WalkTabs({ walk, block }: { walk: WalkRole; block: string | null }) {
-  const router = useRouter();
+export function WalkTabs({
+  walk,
+  block,
+  onSelect,
+  idPrefix,
+  panelId,
+}: {
+  walk: WalkRole;
+  block: string | null;
+  onSelect: (walk: WalkRole) => void;
+  idPrefix: string;
+  panelId: string;
+}) {
+  const pending = useRef<WalkRole | null>(null);
+
+  useEffect(() => {
+    if (pending.current !== walk) return;
+    pending.current = null;
+    document.getElementById(`${idPrefix}-${walk}`)?.focus();
+  }, [walk, idPrefix]);
+
+  function choose(next: WalkRole) {
+    if (next === walk) {
+      document.getElementById(`${idPrefix}-${next}`)?.focus();
+      return;
+    }
+    pending.current = next;
+    onSelect(next);
+  }
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     const key = event.key;
@@ -22,9 +48,18 @@ export function WalkTabs({ walk, block }: { walk: WalkRole; block: string | null
     event.preventDefault();
     const index = ORDER.indexOf(walk);
     const next =
-      key === "Home" ? ORDER[0] : key === "End" ? ORDER[1] : ORDER[(index + (key === "ArrowRight" ? 1 : -1) + ORDER.length) % ORDER.length];
-    document.getElementById(`walk-tab-${next}`)?.focus();
-    if (next !== walk) router.push(walkHref(next, block), { scroll: false });
+      key === "Home"
+        ? ORDER[0]
+        : key === "End"
+          ? ORDER[ORDER.length - 1]
+          : ORDER[(index + (key === "ArrowRight" ? 1 : -1) + ORDER.length) % ORDER.length];
+    if (next) choose(next);
+  }
+
+  function onClick(event: MouseEvent<HTMLAnchorElement>, role: WalkRole) {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    event.preventDefault();
+    choose(role);
   }
 
   return (
@@ -34,15 +69,16 @@ export function WalkTabs({ walk, block }: { walk: WalkRole; block: string | null
         return (
           <Link
             key={role}
-            id={`walk-tab-${role}`}
+            id={`${idPrefix}-${role}`}
             href={walkHref(role, block)}
             role="tab"
             aria-selected={selected}
-            aria-controls="main"
+            aria-controls={panelId}
             tabIndex={selected ? 0 : -1}
             scroll={false}
+            onClick={(event) => onClick(event, role)}
             className={cn(
-              "inline-flex h-11 items-center rounded-pill px-4 text-sm no-underline",
+              "inline-flex h-11 items-center rounded-pill px-3 text-sm no-underline min-[481px]:px-4",
               selected ? "bg-forest font-semibold text-dew" : "text-forest",
             )}
           >

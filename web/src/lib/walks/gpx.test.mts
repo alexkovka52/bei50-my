@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { buildGpx } from "./gpx.ts";
+import { buildGpx, gpxFileName, wholeWalkTrackNote } from "./gpx.ts";
 
 test("buildGpx writes GPX 1.1 with lat/lon swapped from GeoJSON and escaped names", () => {
   const xml = buildGpx({
@@ -23,6 +23,14 @@ test("buildGpx writes GPX 1.1 with lat/lon swapped from GeoJSON and escaped name
   assert.match(xml, /<name>Inspector &amp; walk<\/name>/);
   assert.match(xml, /<wpt lat="47\.1273226" lon="28\.7024789"><name>64 m gap &lt;V04&gt;<\/name><desc>Missing plants<\/desc><type>gap<\/type><\/wpt>/);
   assert.match(xml, /<trkpt lat="47\.1230335" lon="28\.7073776"><\/trkpt>\n<trkpt lat="47\.1300000" lon="28\.7100000"><\/trkpt>/);
+});
+
+test("a block filter is named on the file and described as the whole walk", () => {
+  assert.equal(gpxFileName("inspector", null), "inspector-walk.gpx");
+  assert.equal(gpxFileName("inspector", "  "), "inspector-walk.gpx");
+  assert.equal(gpxFileName("farmer", "V01"), "farmer-walk-V01.gpx");
+  assert.equal(wholeWalkTrackNote(null), null);
+  assert.equal(wholeWalkTrackNote("V01"), "The track is the whole walk. Stops in the file are for block V01.");
 });
 
 test("buildGpx drops coordinates that are not WGS84", () => {

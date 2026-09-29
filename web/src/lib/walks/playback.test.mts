@@ -4,6 +4,7 @@ import {
   advancePlayback,
   isPlaybackSpeed,
   playbackFraction,
+  playbackToggleLabel,
   PLAYBACK_METRES_PER_SECOND,
   remainingMetres,
 } from "./playback.ts";
@@ -31,6 +32,13 @@ test("playbackFraction and remaining metres stay inside the walk", () => {
   assert.equal(remainingMetres(8000, 2000), 6000);
   assert.equal(remainingMetres(8000, -5), 8000);
   assert.equal(remainingMetres(8000, 9000), 0);
+});
+
+test("playback toggle names play, pause and replay", () => {
+  assert.equal(playbackToggleLabel(false, 0, 1000), "Play playback");
+  assert.equal(playbackToggleLabel(true, 10, 1000), "Pause playback");
+  assert.equal(playbackToggleLabel(false, 999.96, 1000), "Replay playback");
+  assert.equal(playbackToggleLabel(false, 10, 0), "Play playback");
 });
 
 test("playback speeds are the three preview steps", () => {

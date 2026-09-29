@@ -1,5 +1,6 @@
+import { disruptedRowShare } from "@/lib/blocks/blocks";
 import { formatInt, formatPct } from "@/lib/data/format";
-import type { BBox, Block, CoverCounts, StructureCounts, Summary, Task, VineyardRow } from "@/lib/data/types";
+import type { BBox, Block, CoverCounts, Summary, Task, VineyardRow } from "@/lib/data/types";
 import { walkSentence } from "@/lib/walks/coverage";
 
 export type NumberStat = {
@@ -69,11 +70,11 @@ export function statusDetail(
   });
 }
 
-/** Bare soil as a percent of inter-rows that received a cover class. */
+/** Bare soil as a percent of every inter-row, the same denominator as the cover bar. */
 export function bareSoilPercent(cover: CoverCounts): number | null {
-  const assessed = cover.bare_soil + cover.vegetation + cover.mixed;
-  if (assessed <= 0) return null;
-  return (cover.bare_soil / assessed) * 100;
+  const total = cover.bare_soil + cover.vegetation + cover.mixed + cover.unassessable + cover.unset;
+  if (total <= 0) return null;
+  return (cover.bare_soil / total) * 100;
 }
 
 export function bareSoilNote(cover: CoverCounts): string {
@@ -82,23 +83,16 @@ export function bareSoilNote(cover: CoverCounts): string {
   return `${formatPct(pct)} bare soil`;
 }
 
-/** Disrupted rows as a percent of rows that are regular or disrupted, nearest integer. */
-export function disruptedShare(structure: StructureCounts): number | null {
-  const assessed = structure.regular + structure.disrupted;
-  if (assessed <= 0) return null;
-  return Math.round((structure.disrupted / assessed) * 100);
-}
-
-export function numberStats(summary: Summary): NumberStat[] {
-  const rows = oneDecimal(summary.row_km);
+export function numberStats(summary: Summary, rows: readonly VineyardRow[] | null): NumberStat[] {
+  const rowKm = oneDecimal(summary.row_km);
   const ground = oneDecimal(summary.interrow_ha);
   const canopy = oneDecimal(summary.canopy_ha);
-  const disrupted = disruptedShare(summary.structure);
+  const disrupted = rows ? disruptedRowShare(rows) : null;
   return [
     {
       label: "Rows",
-      value: rows ?? "Not measured",
-      unit: rows ? "km" : undefined,
+      value: rowKm ?? "Not measured",
+      unit: rowKm ? "km" : undefined,
       note: counted(summary.counts.row_pieces, "row piece", "row pieces"),
     },
     {
@@ -126,13 +120,8 @@ export function coverSlices(cover: CoverCounts): CoverSlice[] {
     { label: "Bare soil", count: cover.bare_soil, color: "#A9825A", muted: false, bordered: false },
     { label: "Mixed", count: cover.mixed, color: "#B4B65A", muted: false, bordered: false },
     { label: "Vegetation", count: cover.vegetation, color: "#6B9071", muted: false, bordered: false },
-    {
-      label: "Not assessed",
-      count: cover.unset + cover.unassessable,
-      color: "#D9E4CD",
-      muted: true,
-      bordered: true,
-    },
+    { label: "Unassessable", count: cover.unassessable, color: "#8C8178", muted: true, bordered: false },
+    { label: "Not assessed", count: cover.unset, color: "#D9E4CD", muted: true, bordered: true },
   ];
 }
 

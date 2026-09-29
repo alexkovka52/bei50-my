@@ -126,7 +126,7 @@ test("labels use measured gap text and a short flight date", () => {
   assert.equal(formatFlownShort("nope"), "Not measured");
   assert.equal(formatRowLength(4.26), "4.26 km");
   assert.equal(formatRowLength(-1), "Not measured");
-  assert.deepEqual(structureBar(47), { regular: 53, disrupted: 47, caption: "47% of assessed pieces disrupted" });
+  assert.deepEqual(structureBar(47), { regular: 53, disrupted: 47, caption: "47% of assessed rows disrupted" });
   assert.equal(structureBar(null).caption, "Not measured");
   assert.deepEqual(wasteSummary(0), { label: "No waste items", action: null });
   assert.deepEqual(wasteSummary(3), { label: "3 waste items", action: "Collect" });

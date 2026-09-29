@@ -5,9 +5,10 @@ import { formatDuration, formatInt } from "@/lib/data/format";
 import type { LonLat } from "@/lib/data/types";
 import { walkSentence } from "@/lib/walks/coverage";
 import { formatWalkKm } from "@/lib/walks/format";
-import { buildGpx } from "@/lib/walks/gpx";
+import { wholeWalkTrackNote } from "@/lib/walks/gpx";
 import { taskHeading, taskNote, type WalkRole } from "@/lib/walks/tasks";
 import { Button } from "@/components/ui/Button";
+import { saveWalkGpx } from "./save-gpx";
 
 const ROUTE_NOTE =
   "Starts and ends at the farm-track junction in the north-west corner. Stays on inter-rows and tracks, never inside forbidden zones.";
@@ -25,6 +26,7 @@ type Toast = { kind: "ok" } | { kind: "link"; link: string } | null;
 
 export function WalkSummary({
   walk,
+  block,
   lengthM,
   stops,
   visited,
@@ -33,6 +35,7 @@ export function WalkSummary({
   tasks,
 }: {
   walk: WalkRole;
+  block: string | null;
   lengthM: number;
   stops: number;
   visited: number | null;
@@ -65,8 +68,12 @@ export function WalkSummary({
     }
   }
 
+  const trackNote = wholeWalkTrackNote(block);
+
   function downloadGpx() {
-    const xml = buildGpx({
+    saveWalkGpx({
+      walk,
+      block,
       name,
       coordinates,
       waypoints: tasks.map((task) => ({
@@ -76,14 +83,6 @@ export function WalkSummary({
         type: task.kind,
       })),
     });
-    const url = URL.createObjectURL(new Blob([xml], { type: "application/gpx+xml" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${walk}-walk.gpx`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   return (
@@ -103,6 +102,7 @@ export function WalkSummary({
         {walkSentence({ role: walk, lengthM, stops, visited, total })}
       </p>
       <p className="m-0 text-sm leading-normal text-ink-muted">{ROUTE_NOTE}</p>
+      {trackNote ? <p className="m-0 text-sm leading-normal text-ink-muted">{trackNote}</p> : null}
       <div className="flex gap-2.5">
         <Button className="flex-1" onClick={sendToPhone}>
           Send to phone

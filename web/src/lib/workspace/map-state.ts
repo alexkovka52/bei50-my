@@ -302,7 +302,7 @@ export function structureBar(percent: number | null): { regular: number; disrupt
   const disrupted = Math.min(100, Math.max(0, percent));
   const rounded = Math.round(disrupted * 10) / 10;
   const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
-  return { regular: 100 - disrupted, disrupted, caption: `${text}% of assessed pieces disrupted` };
+  return { regular: 100 - disrupted, disrupted, caption: `${text}% of assessed rows disrupted` };
 }
 
 export function wasteSummary(count: number): { label: string; action: string | null } {

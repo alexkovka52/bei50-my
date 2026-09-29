@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { BlocksWorkspace } from "@/components/blocks/BlocksWorkspace";
 import { AppShell } from "@/components/shell/AppShell";
 import { EmptyState } from "@/components/shell/EmptyState";
-import { getBlocks } from "@/lib/data/server";
+import { blocksWithRowDisruption } from "@/lib/blocks/blocks";
+import { getBlocks, getRows } from "@/lib/data/server";
 
 export const metadata: Metadata = {
   title: "Blocks",
@@ -19,12 +20,13 @@ function selectedParam(value: string | string[] | undefined): string | null {
 }
 
 export default async function BlocksPage({ searchParams }: BlocksPageProps) {
-  const [blocks, params] = await Promise.all([getBlocks(), searchParams]);
+  const [blocks, rows, params] = await Promise.all([getBlocks(), getRows(), searchParams]);
+  const ranked = blocks ? blocksWithRowDisruption(blocks, rows ?? []) : null;
 
   return (
     <AppShell>
-      {blocks && blocks.length > 0 ? (
-        <BlocksWorkspace blocks={blocks} initialSelected={selectedParam(params.selected)} />
+      {ranked && ranked.length > 0 ? (
+        <BlocksWorkspace blocks={ranked} initialSelected={selectedParam(params.selected)} />
       ) : (
         <>
           <h1 className="m-0 font-display text-[40px] font-bold leading-none tracking-[-1px] text-forest">Blocks</h1>

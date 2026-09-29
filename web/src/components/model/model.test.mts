@@ -56,7 +56,7 @@ test("dataset card counts and the train, tune and score split", () => {
     datasetStats({ tiles: 311, plants: 13308, rows: 2030, interrows: 1641, waste: 83, split: { train: 223, val: 43, test: 45 } }),
     [
       { value: "13,308", label: "plant outlines" },
-      { value: "2,030", label: "row lines" },
+      { value: "2,030", label: "row pieces" },
       { value: "1,641", label: "inter-row areas" },
       { value: "83", label: "waste items" },
     ],

@@ -26,7 +26,12 @@ export function BlockRows({ rows }: { rows: VineyardRow[] | null }) {
             <span>{formatInt(rows.length)} rows</span>
             <span>{formatInt(disrupted)} disrupted</span>
           </p>
-          <div className="mt-4 min-w-0 overflow-x-auto">
+          <div
+            className="mt-4 min-w-0 overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-moss"
+            tabIndex={0}
+            role="region"
+            aria-label="Rows in this block"
+          >
             <table className="w-full min-w-[420px] border-collapse text-sm">
               <caption className="sr-only">Rows in this block, with length and structure</caption>
               <thead>

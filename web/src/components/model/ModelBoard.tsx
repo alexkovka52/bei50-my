@@ -72,7 +72,12 @@ export function ModelBoard({ model, summary }: { model: ModelFile; summary: Summ
             <h2 className="m-0 text-lg font-semibold">Scores on fields the models never saw</h2>
             <p className="m-0 text-[13px] text-ink-muted">{heldOutLabel(model.dataset.split.test)}</p>
           </div>
-          <div className="mt-3 min-w-0 overflow-x-auto">
+          <div
+            className="mt-3 min-w-0 overflow-x-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-moss"
+            tabIndex={0}
+            role="region"
+            aria-label="Model scores"
+          >
             <table className="w-full min-w-[520px] border-collapse text-[15px]">
               <caption className="sr-only">Model scores before training on this vineyard and now</caption>
               <thead>

@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MapWorkspace } from "@/components/workspace/MapWorkspace";
 import { EmptyState } from "@/components/shell/EmptyState";
+import { blocksWithRowDisruption } from "@/lib/blocks/blocks";
 import { getBlocks, getRows, getSummary } from "@/lib/data/server";
 import { walkSentence } from "@/lib/walks/coverage";
 import { loadWalkRoute } from "@/lib/walks/load-route";
@@ -61,7 +62,14 @@ export default async function MapPage({ searchParams }: MapPageProps) {
     );
   }
 
-  const catalog = buildMapCatalog({ summary, blocks, rows, rowFeatures, gapFeatures, wasteFeatures });
+  const catalog = buildMapCatalog({
+    summary,
+    blocks: blocksWithRowDisruption(blocks, rows),
+    rows,
+    rowFeatures,
+    gapFeatures,
+    wasteFeatures,
+  });
   const walkNote = walkSentence({
     role: "inspector",
     lengthM: summary.walks.inspector.length_m,

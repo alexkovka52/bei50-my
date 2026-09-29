@@ -30,17 +30,7 @@ test.describe("route health", () => {
       await openRoute(page, route);
       const violations = await seriousAxeViolations(page);
       const ids = violations.map((violation) => violation.id);
-      test.fixme(
-        route === "/blocks" && ids.includes("aria-allowed-attr"),
-        "Sort buttons set aria-sort, which the button role does not allow.",
-      );
-      test.fixme(
-        testInfo.project.name === "mobile" &&
-          (route === "/blocks/V03" || route === "/ai") &&
-          ids.includes("scrollable-region-focusable"),
-        "On a phone the wide table scrolls without a keyboard-focusable region.",
-      );
-      expect(ids, route).toEqual([]);
+      expect(ids, `${route} ${testInfo.project.name}`).toEqual([]);
     });
   }
 });

@@ -84,7 +84,7 @@ function csvCell(value: string): string {
 }
 
 export function blocksToCsv(blocks: readonly Block[]): string {
-  const header = "Block,Rows,Row length (km),Plants,Disrupted rows,Gaps,Waste,Inter-row (ha)";
+  const header = "Block,Rows,Row length (km),Plants,Disrupted rows (%),Gaps,Waste,Inter-row (ha)";
   const lines = blocks.map((block) =>
     [
       csvCell(block.id),
@@ -98,6 +98,33 @@ export function blocksToCsv(blocks: readonly Block[]): string {
     ].join(","),
   );
   return [header, ...lines, ""].join("\n");
+}
+
+/** Regular or disrupted. Unset and unassessable rows are not a known structure. */
+export function isKnownStructure(structure: RowStructure): structure is "regular" | "disrupted" {
+  return structure === "regular" || structure === "disrupted";
+}
+
+/**
+ * Disrupted rows as a percent of aggregated rows with a known structure.
+ * `blockId` limits the count to one block. Null when none of those rows were classified.
+ */
+export function disruptedRowShare(rows: readonly VineyardRow[], blockId?: string | null): number | null {
+  let disrupted = 0;
+  let known = 0;
+  for (const row of rows) {
+    if (blockId != null && row.block !== blockId) continue;
+    if (!isKnownStructure(row.structure)) continue;
+    known += 1;
+    if (row.structure === "disrupted") disrupted += 1;
+  }
+  if (known <= 0) return null;
+  return Math.round((disrupted / known) * 100);
+}
+
+/** Replace each block's piece-based disruption with the aggregated-row share. */
+export function blocksWithRowDisruption(blocks: readonly Block[], rows: readonly VineyardRow[]): Block[] {
+  return blocks.map((block) => ({ ...block, disrupted_pct: disruptedRowShare(rows, block.id) }));
 }
 
 export function findBlock(blocks: readonly Block[], id: string): Block | null {
